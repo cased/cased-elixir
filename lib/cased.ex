@@ -3,16 +3,25 @@ defmodule Cased do
   Documentation for Cased.
   """
 
-  @doc """
-  Hello world.
+  @spec publish(publisher :: GenServer.server(), data :: term()) :: :ok | {:error, Jason.EncodeError.t() | Exception.t()}
+  def publish(publisher, data) do
+    case Jason.encode(data) do
+      {:ok, json} ->
+        GenServer.cast(publisher, {:publish, json})
 
-  ## Examples
+      other ->
+        other
+    end
+  end
 
-      iex> Cased.hello()
-      :world
+  @spec publish!(publisher :: GenServer.server(), data :: term()) :: :ok | no_return()
+  def publish!(publisher, data) do
+    case publish(publisher, data) do
+      :ok ->
+        :ok
 
-  """
-  def hello do
-    :world
+      {:error, err} ->
+        raise err
+    end
   end
 end
