@@ -7,7 +7,7 @@ defmodule CasedTest do
 
       data = %{action: "test"}
 
-      Cased.publish(self(), data)
+      data |> Cased.publish(publisher)
 
       encoded_data = Jason.encode!(data)
       assert_receive({:"$gen_cast", {:publish, ^encoded_data}}, 100)

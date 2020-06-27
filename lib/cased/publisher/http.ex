@@ -9,16 +9,19 @@ defmodule Cased.Publisher.HTTP do
   @type init_opt ::
       {:key, String.t()}
     | {:url, String.t()}
+    | {:silence, boolean()}
     | {:timeout, pos_integer() | :infinity}
 
   @default_init_opts [
     url: "https://publish.cased.com",
-    timeout: 15_000
+    timeout: 15_000,
+    silence: false
   ]
 
   @type config :: %{
     url: String.t(),
     headers: Mojito.headers(),
+    silence: boolean(),
     timeout: pos_integer() | :infinity
   }
 
@@ -51,10 +54,14 @@ defmodule Cased.Publisher.HTTP do
 
   @impl true
   @spec handle_cast({:publish, json :: String.t()}, config()) :: {:noreply, config()}
+  def handle_cast({:publish, _json}, %{silence: true} = config) do
+    Logger.debug("Silenced Cased publish")
+    {:noreply, config}
+  end
   def handle_cast({:publish, json}, config) do
     case Mojito.post(config.url, config.headers, json, timeout: config.timeout) do
       {:ok, response} ->
-        Logger.debug("Received HTTP #{response.status_code} response from Cased with body: #{inspect(response.body)}")
+        Logger.info("Received HTTP #{response.status_code} response from Cased with body: #{inspect(response.body)}")
 
       {:error, err} ->
         Logger.warn("Error publishing to Cased: #{inspect(err)}")

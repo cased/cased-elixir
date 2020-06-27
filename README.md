@@ -16,7 +16,7 @@ A Cased client for Elixir applications in your organization to control and monit
   - [Disable publishing events](#disable-publishing-events)
   - [Context](#context)
   - [Testing](#testing)
-- [Customizing cased-ruby](#customizing-cased-ruby)
+- [Customizing cased-elixir](#customizing-cased-elixir)
 
 ## Installation
 
@@ -32,13 +32,59 @@ end
 
 ## Configuration
 
+### For Publishing
+
+Add a worker specification for `Cased.Publisher.HTTP` to your application's supervisor.
+
+The publisher accepts the following options:
+- `:key` — Your [Cased publish key](https://docs.cased.com/apis#authentication-and-api-keys) (**required**).
+- `:url` — The URL used to publish audit trail events via HTTP POST (**optional**;
+  defaults to `https://publish.cased.com`).
+- `:silence` — Whether audit trail events will be discarded, rather than sent; useful for
+  non-production usage (**optional**; defaults to `false`).
+
+You can source your configuration values from your application configuration,
+runtime environment variables, or hard-code them directly; the following is just
+an example:
+
+```elixir
+children = [
+  # Other workers...
+  {
+    Cased.Publisher.HTTP,
+    key: System.get_env("CASED_PUBLISH_KEY") || Application.fetch_env!(:your_app, :cased_publish_key),
+    silence: Mix.env() != :prod
+  }
+]
+
+# Other config...
+Supervisor.start_link(children, opts)
+```
+
+### For Data Retrieval
+
 TK
 
 ## Usage
 
 ### Publishing events to Cased
 
-TK
+#### Manually
+
+Provided you've [configured](#for-publishing) the Cased publisher, use `Cased.publish/1`:
+
+```elixir
+%{
+  action: "credit_card.charge",
+  amount: 2000,
+  currency: "usd",
+  source: "tok_amex",
+  description: "My First Test Charge (created for API docs)",
+  credit_card_id: "card_1dQpXqQwXxsQs9sohN9HrzRAV6y"
+}
+|> Cased.publish()
+
+```
 
 ### Retrieving events from a Cased Policy
 

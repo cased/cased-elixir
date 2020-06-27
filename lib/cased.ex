@@ -3,8 +3,8 @@ defmodule Cased do
   Documentation for Cased.
   """
 
-  @spec publish(publisher :: GenServer.server(), data :: term()) :: :ok | {:error, Jason.EncodeError.t() | Exception.t()}
-  def publish(publisher, data) do
+  @spec publish(data :: term(), publisher :: GenServer.server()) :: :ok | {:error, Jason.EncodeError.t() | Exception.t()}
+  def publish(data, publisher \\ Cased.Publisher.HTTP) do
     case Jason.encode(data) do
       {:ok, json} ->
         GenServer.cast(publisher, {:publish, json})
@@ -14,9 +14,9 @@ defmodule Cased do
     end
   end
 
-  @spec publish!(publisher :: GenServer.server(), data :: term()) :: :ok | no_return()
-  def publish!(publisher, data) do
-    case publish(publisher, data) do
+  @spec publish!(data :: term(), publisher :: GenServer.server()) :: :ok | no_return()
+  def publish!(data, publisher \\ Cased.Publisher.HTTP) do
+    case publish(data, publisher) do
       :ok ->
         :ok
 

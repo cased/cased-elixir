@@ -1,11 +1,12 @@
 defmodule Cased.Publisher.HTTPTest do
   use ExUnit.Case, async: true
+  import ExUnit.CaptureLog
 
   @key "policy_test_abcd"
 
-  setup do
+  setup context do
     bypass = Bypass.open()
-    publisher = start_supervised!({Cased.Publisher.HTTP, key: @key, url: "http://localhost:#{bypass.port}"})
+    publisher = start_supervised!({Cased.Publisher.HTTP, key: @key, url: "http://localhost:#{bypass.port}", silence: context[:silence] || false})
     {:ok, publisher: publisher, bypass: bypass}
   end
 
@@ -13,7 +14,7 @@ defmodule Cased.Publisher.HTTPTest do
     # Get application version for user-agent header check
     {:ok, vsn} = :application.get_key(:cased, :vsn)
 
-    Bypass.expect bypass, fn conn ->
+    Bypass.expect_once bypass, fn conn ->
       # Check headers
       assert {"authorization", "Bearer " <> @key} in conn.req_headers
       assert {"content-type", "application/json"} in conn.req_headers
@@ -22,6 +23,17 @@ defmodule Cased.Publisher.HTTPTest do
       Plug.Conn.resp(conn, 200, ~s({"id":"test-response"}))
     end
 
+    publish(publisher)
+  end
+
+  @tag silence: true
+  test "handles publish with silence", %{publisher: publisher} do
+    assert capture_log(fn ->
+      publish(publisher)
+    end) =~ "Silenced Cased publish"
+  end
+
+  defp publish(publisher) do
     assert :ok == GenServer.cast(publisher, {:publish, ~s({"data":"fake"})})
 
     # Waits for `Cased.Publisher.HTTP.handle_cast/2` to complete
