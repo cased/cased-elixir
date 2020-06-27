@@ -2,11 +2,17 @@ defmodule Cased.Publisher.HTTPTest do
   use ExUnit.Case, async: true
   import ExUnit.CaptureLog
 
-  @key "policy_test_abcd"
+  @key "publish_test_abcd"
 
   setup context do
     bypass = Bypass.open()
-    publisher = start_supervised!({Cased.Publisher.HTTP, key: @key, url: "http://localhost:#{bypass.port}", silence: context[:silence] || false})
+
+    publisher =
+      start_supervised!(
+        {Cased.Publisher.HTTP,
+         key: @key, url: "http://localhost:#{bypass.port}", silence: context[:silence] || false}
+      )
+
     {:ok, publisher: publisher, bypass: bypass}
   end
 
@@ -14,14 +20,14 @@ defmodule Cased.Publisher.HTTPTest do
     # Get application version for user-agent header check
     {:ok, vsn} = :application.get_key(:cased, :vsn)
 
-    Bypass.expect_once bypass, fn conn ->
+    Bypass.expect_once(bypass, fn conn ->
       # Check headers
       assert {"authorization", "Bearer " <> @key} in conn.req_headers
       assert {"content-type", "application/json"} in conn.req_headers
       assert {"user-agent", "cased-elixir/v#{List.to_string(vsn)}"} in conn.req_headers
       # Stub response
       Plug.Conn.resp(conn, 200, ~s({"id":"test-response"}))
-    end
+    end)
 
     publish(publisher)
   end
@@ -29,8 +35,15 @@ defmodule Cased.Publisher.HTTPTest do
   @tag silence: true
   test "handles publish with silence", %{publisher: publisher} do
     assert capture_log(fn ->
-      publish(publisher)
-    end) =~ "Silenced Cased publish"
+             publish(publisher)
+           end) =~ "Silenced Cased publish"
+  end
+
+  describe "start_link/1" do
+    test "returns an error when misconfigured" do
+      assert {:error, %Cased.ConfigurationError{message: "invalid publisher configuration"}} =
+               Cased.Publisher.HTTP.start_link([])
+    end
   end
 
   defp publish(publisher) do

@@ -27,6 +27,7 @@ defmodule Cased.MixProject do
       {:jason, "~> 1.2.1"},
       {:bypass, "~> 1.0", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
+      {:norm, "~> 0.12"}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]
@@ -34,7 +35,8 @@ defmodule Cased.MixProject do
 
   defp package do
     [
-      description: "Cased provides user and employee activity audit trails to companies that need to monitor access to information or demonstrate regulatory compliance.",
+      description:
+        "Cased provides user and employee activity audit trails to companies that need to monitor access to information or demonstrate regulatory compliance.",
       files: [
         "lib",
         "mix.exs",

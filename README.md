@@ -32,16 +32,20 @@ end
 
 ## Configuration
 
-### For Publishing
+`cased-elixir` follows Elixir's [Library Guidelines](https://hexdocs.pm/elixir/master/library-guidelines.html#avoid-application-configuration), avoiding the use of a global `:cased` application configuration in favor of more flexible, ad hoc configuration at runtime (using your own application configuration, environment variables, etc).
+
+### For Publisher
 
 Add a worker specification for `Cased.Publisher.HTTP` to your application's supervisor.
 
 The publisher accepts the following options:
+
 - `:key` — Your [Cased publish key](https://docs.cased.com/apis#authentication-and-api-keys) (**required**).
 - `:url` — The URL used to publish audit trail events via HTTP POST (**optional**;
   defaults to `https://publish.cased.com`).
 - `:silence` — Whether audit trail events will be discarded, rather than sent; useful for
   non-production usage (**optional**; defaults to `false`).
+- `:timeout` — The request timeout, in milliseconds (**optional**; defaults to `15_000`)
 
 You can source your configuration values from your application configuration,
 runtime environment variables, or hard-code them directly; the following is just
@@ -61,9 +65,83 @@ children = [
 Supervisor.start_link(children, opts)
 ```
 
-### For Data Retrieval
+In the event you provide an invalid configuration, a `Cased.ConfigurationError` will be raised with details.
 
-TK
+### For Client
+
+To access Cased API routes and functionality other than publishing, configure a
+client using `Cased.Client.create/1`:
+
+The function accepts the following options:
+
+- `:key` — Your `default` [Cased policy key](https://docs.cased.com/apis#authentication-and-api-keys). This is
+  shorthand for providing `:keys`, as explained below, with a value for
+  `:default`:
+- `:keys` - Your [Cased policy keys](https://docs.cased.com/apis#authentication-and-api-keys), by audit trail ([example below](#keys-example))
+- `:url` — The API URL (**optional**; defaults to `https://api.cased.com`).
+- `:timeout` — The request timeout, in milliseconds (**optional**; defaults to
+  `15_000`)
+
+These configuration values can be provided a number of ways, as shown in the
+examples below.
+
+#### Examples
+
+Create a client with the policy key for your `default` audit trail:
+
+```elixir
+{:ok, client} = Cased.Client.create(key: "policy_live_...")
+```
+
+<a name="keys-example"></a>
+Create a client key with policy keys for specific audit trails:
+
+```elixir
+{:ok, client} = Cased.Client.create(keys: [default: "policy_live_...", users: "policy_live_..."])
+```
+
+Clients can be configured using runtime environment variables, your application
+configuration, hardcoded values, or any combination you choose:
+
+```elixir
+# Just using runtime environment variable:
+{:ok, client} = Cased.Client.create(key: System.fetch_env!("CASED_POLICY_KEY"))
+
+# Just using application configuration:
+{:ok, client} = Cased.Client.create(key: Application.fetch_env!(:your_app, :cased_policy_key))
+
+# Either/or
+{:ok, client} = Cased.Client.create!(key: System.get_env("CASED_POLICY_KEY") || Application.fetch_env!(:your_app, :cased_policy_key))
+```
+
+In the event your client is misconfigured, you'll get a `Cased.ConfigurationError` exception struct instead:
+
+```elixir
+# Not providing required options:
+{:error, %Cased.ConfigurationError{}} = Cased.Client.create()
+```
+
+You can also use `Cased.Client.create!/1` if you know you're passing the correct configuration options (otherwise it raises a `Cased.ConfigurationError` exception):
+
+```elixir
+client = Cased.Client.create!(key: "policy_live_...")
+```
+
+To simplify using clients across your application, consider writing a centralized function to handle constructing them:
+
+```elixir
+defmodule YourApp do
+
+  # Rest of contents ...
+
+  def cased_client do
+    default_policy_key = System.get_env("CASED_POLICY_KEY") || Application.fetch_env!(:your_app, :cased_policy_key)
+    Cased.Client.create!(key: default_policy_key, silence: Mix.env() != :prod)
+  end
+end
+```
+
+For reuse, consider caching your client structs in GenServer state, ETS, or another Elixir caching mechanism.
 
 ## Usage
 
@@ -71,7 +149,7 @@ TK
 
 #### Manually
 
-Provided you've [configured](#for-publishing) the Cased publisher, use `Cased.publish/1`:
+Provided you've [configured](#for-publisher) the Cased publisher, use `Cased.publish/1`:
 
 ```elixir
 %{

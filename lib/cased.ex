@@ -3,7 +3,12 @@ defmodule Cased do
   Documentation for Cased.
   """
 
-  @spec publish(data :: term(), publisher :: GenServer.server()) :: :ok | {:error, Jason.EncodeError.t() | Exception.t()}
+  defmodule ConfigurationError do
+    defexception message: "invalid configuration options were provided", details: nil
+  end
+
+  @spec publish(data :: term(), publisher :: GenServer.server()) ::
+          :ok | {:error, Jason.EncodeError.t() | Exception.t()}
   def publish(data, publisher \\ Cased.Publisher.HTTP) do
     case Jason.encode(data) do
       {:ok, json} ->

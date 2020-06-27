@@ -1,5 +1,7 @@
 defmodule Cased.Publisher.HTTP do
   use GenServer
+
+  import Norm
   require Logger
 
   @typedoc """
@@ -7,10 +9,10 @@ defmodule Cased.Publisher.HTTP do
   """
   @type init_opts :: [init_opt()]
   @type init_opt ::
-      {:key, String.t()}
-    | {:url, String.t()}
-    | {:silence, boolean()}
-    | {:timeout, pos_integer() | :infinity}
+          {:key, String.t()}
+          | {:url, String.t()}
+          | {:silence, boolean()}
+          | {:timeout, pos_integer() | :infinity}
 
   @default_init_opts [
     url: "https://publish.cased.com",
@@ -19,11 +21,11 @@ defmodule Cased.Publisher.HTTP do
   ]
 
   @type config :: %{
-    url: String.t(),
-    headers: Mojito.headers(),
-    silence: boolean(),
-    timeout: pos_integer() | :infinity
-  }
+          url: String.t(),
+          headers: Mojito.headers(),
+          silence: boolean(),
+          timeout: pos_integer() | :infinity
+        }
 
   @static_headers [{"content-type", "application/json"}]
 
@@ -32,7 +34,18 @@ defmodule Cased.Publisher.HTTP do
   """
   @spec start_link(opts :: init_opts()) :: GenServer.on_start()
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+    opts =
+      @default_init_opts
+      |> Keyword.merge(opts)
+
+    case validate_init_opts(opts) do
+      {:ok, opts} ->
+        GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+
+      {:error, details} ->
+        {:error,
+         %Cased.ConfigurationError{message: "invalid publisher configuration", details: details}}
+    end
   end
 
   ##
@@ -45,8 +58,7 @@ defmodule Cased.Publisher.HTTP do
   @impl true
   def init(opts) do
     config =
-      @default_init_opts
-      |> Keyword.merge(opts)
+      opts
       |> parse_config()
 
     {:ok, config}
@@ -58,10 +70,15 @@ defmodule Cased.Publisher.HTTP do
     Logger.debug("Silenced Cased publish")
     {:noreply, config}
   end
+
   def handle_cast({:publish, json}, config) do
     case Mojito.post(config.url, config.headers, json, timeout: config.timeout) do
       {:ok, response} ->
-        Logger.info("Received HTTP #{response.status_code} response from Cased with body: #{inspect(response.body)}")
+        Logger.info(
+          "Received HTTP #{response.status_code} response from Cased with body: #{
+            inspect(response.body)
+          }"
+        )
 
       {:error, err} ->
         Logger.warn("Error publishing to Cased: #{inspect(err)}")
@@ -76,28 +93,53 @@ defmodule Cased.Publisher.HTTP do
   # Parse the raw `init/1` options to the configuration.
   @spec parse_config(opts :: init_opts()) :: config()
   defp parse_config(opts) do
-    headers = [
-      authorization_header(opts[:key]),
-      user_agent_header()
-    ] ++ @static_headers
+    headers =
+      [
+        authorization_header(opts[:key]),
+        user_agent_header()
+      ] ++ @static_headers
 
     opts
     |> Keyword.drop([:key])
     |> Keyword.put(:headers, headers)
-    |> Map.new
+    |> Map.new()
   end
 
-  # Build the authorization header
+  # Build the authorization header.
   @spec authorization_header(key :: String.t()) :: Mojito.header()
   defp authorization_header(key) do
     {"authorization", "Bearer " <> key}
   end
 
-  # Build the user-agent header
+  # Build the user-agent header.
   @spec user_agent_header() :: Mojito.header()
   defp user_agent_header() do
     {:ok, vsn} = :application.get_key(:cased, :vsn)
 
     {"user-agent", "cased-elixir/v" <> List.to_string(vsn)}
+  end
+
+  # Validate the options to `init/1`.
+  @spec validate_init_opts(opts :: init_opts()) :: {:ok, init_opts()} | {:error, [map()]}
+  defp validate_init_opts(opts) do
+    case conform(Map.new(opts), init_opts_schema()) do
+      {:ok, _} ->
+        {:ok, opts}
+
+      other ->
+        other
+    end
+  end
+
+  # Schema for options to `init/1`. Used by `validate_init_opts/1`.
+  @spec init_opts_schema() :: struct()
+  defp init_opts_schema do
+    schema(%{
+      key: spec(is_binary() and (&Regex.match?(~r/\Apublish_(live|test)_\S+\Z/, &1))),
+      timeout: spec(&(&1 == :infinity || (is_integer(&1) && &1 > 0))),
+      silence: spec(is_boolean()),
+      url: spec(is_binary() and (&(!is_nil(URI.parse(&1).host))))
+    })
+    |> selection()
   end
 end
