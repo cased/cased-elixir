@@ -1,12 +1,5 @@
 defmodule Cased.ClientTest do
-  use ExUnit.Case, async: true
-
-  @example_key "policy_test_FOO"
-  @example_key2 "policy_test_BAR"
-
-  @bad_key "policy_bad_FOO"
-  @bad_key2 "publish_live_FOO"
-  @bad_key3 "text "
+  use Cased.TestCase
 
   describe "parse_keys/1" do
     test "returns and empty map when given no values" do

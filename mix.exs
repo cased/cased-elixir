@@ -8,7 +8,8 @@ defmodule Cased.MixProject do
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      package: package()
+      package: package(),
+      elixirc_paths: elixirc_paths(Mix.env())
     ]
   end
 
@@ -27,11 +28,15 @@ defmodule Cased.MixProject do
       {:jason, "~> 1.2.1"},
       {:bypass, "~> 1.0", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
-      {:norm, "~> 0.12"}
+      {:norm, "~> 0.12"},
+      {:plug, "~> 1.10.3"}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp package do
     [

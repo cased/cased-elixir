@@ -4,7 +4,28 @@ defmodule Cased do
   """
 
   defmodule ConfigurationError do
-    defexception message: "invalid configuration options were provided", details: nil
+    use Cased.Error, "invalid configuration options were provided"
+  end
+
+  defmodule RequestError do
+    @moduledoc """
+    Models an error that occurred during request configuration.
+    """
+    use Cased.Error, "invalid request configuration"
+  end
+
+  defmodule ResponseError do
+    @moduledoc """
+    Models an error that occurred while retrieving a response or processing it.
+    """
+    defexception message: "invalid response", details: nil, response: nil
+    import Cased.Error
+
+    @type t :: %__MODULE__{
+            message: String.t(),
+            response: nil | Mojito.response(),
+            details: nil | any()
+          }
   end
 
   @spec publish(data :: term(), publisher :: GenServer.server()) ::

@@ -166,15 +166,86 @@ Provided you've [configured](#for-publisher) the Cased publisher, use `Cased.pub
 
 ### Retrieving events from a Cased Policy
 
-TK
+If you plan on retrieving events from your audit trails you must use an Cased Policy token.
+
+```elixir
+client = Cased.Client.create(key: "policy_live_1dQpY5JliYgHSkEntAbMVzuOROh")
+
+events =
+  client
+  |> Cased.Event.query()
+  |> Cased.Request.stream()
+
+events
+|> Enum.take(10)
+|> Enum.each(fn event ->
+  IO.inspect(event)
+end)
+```
 
 ### Retrieving events from a Cased Policy containing variables
 
-TK
+Cased policies allow you to filter events by providing variables to your Cased
+Policy events query. One example of a Cased Policy is to have a single Cased
+Policy that you can use to query events for any user in your database without
+having to create a Cased Policy for each user.
+
+For example, printing the first 100 events in the default audit trail that
+matches a specific user ID:
+
+```elixir
+client = Cased.Client.create(key: "policy_live_1dQpY5JliYgHSkEntAbMVzuOROh")
+
+variables = [user_id: "user_1dSHQSNtAH90KA8zGTooMnmMdiD"]
+
+events =
+  client
+  |> Cased.Event.query(variables: variables)
+  |> Cased.Request.stream()
+
+events
+|> Enum.take(100)
+|> Enum.each(fn event ->
+  IO.inspect(event)
+end)
+```
 
 ### Retrieving events from multiple Cased Policies
 
-TK
+To retrieve events from one or more Cased Policies you can configure multiple
+Cased Policy API keys and retrieve events for each one.
+
+For example, printing the first 100 events for the user and organization audit
+trails:
+
+```elixir
+client = Cased.Client.create(keys: [
+  users: "policy_live_1dQpY8bBgEwdpmdpVrrtDzMX4fH",
+  organizations: "policy_live_1dSHQRurWX8JMYMbkRdfzVoo62d"
+])
+
+users_events =
+  client
+  |> Cased.Event.query(audit_trail: :users, variables: variables)
+  |> Cased.Request.stream()
+
+users_events
+|> Enum.take(100)
+|> Enum.each(fn event ->
+  IO.inspect(event)
+end)
+
+org_events =
+  client
+  |> Cased.Event.query(audit_trail: :organizations, variables: variables)
+  |> Cased.Request.stream()
+
+org_events
+|> Enum.take(100)
+|> Enum.each(fn event ->
+  IO.inspect(event)
+end)
+```
 
 ### Exporting events
 

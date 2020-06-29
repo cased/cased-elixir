@@ -1,13 +1,7 @@
 defmodule Cased.Client do
   import Norm
 
-  @type create_opts :: [create_opt()]
-
-  @type create_opt ::
-          {:keys, Keyword.t()}
-          | {:key, String.t()}
-          | {:url, String.t()}
-          | {:timeout, pos_integer() | :infinity}
+  @default_audit_trail :default
 
   defstruct keys: %{},
             url: "https://api.cased.com",
@@ -18,6 +12,17 @@ defmodule Cased.Client do
           url: String.t(),
           timeout: pos_integer() | :infinity
         }
+
+  ##
+  # Client creation
+
+  @type create_opts :: [create_opt()]
+
+  @type create_opt ::
+          {:keys, keyword()}
+          | {:key, String.t()}
+          | {:url, String.t()}
+          | {:timeout, pos_integer() | :infinity}
 
   @spec create(opts :: create_opts()) :: {:ok, t()} | {:error, any()}
   def create(opts \\ []) do
@@ -39,6 +44,10 @@ defmodule Cased.Client do
     end
   end
 
+  ##
+  # Utilities
+
+  @spec parse_keys(opts :: keyword()) :: map()
   @doc false
   def parse_keys(opts) do
     keys =
@@ -55,17 +64,24 @@ defmodule Cased.Client do
     end
   end
 
+  # Validate a client against a schema to make sure that it's configured correctly.
+  @spec validate(client :: t()) ::
+          {:ok, valid_client :: t()} | {:error, Cased.ConfigurationError.t()}
   defp validate(client) do
     case conform(client, client_schema()) do
       {:error, details} ->
         {:error,
-         %Cased.ConfigurationError{message: "invalid client configuration", details: details}}
+         %Cased.ConfigurationError{
+           message: "invalid client configuration",
+           details: details
+         }}
 
       other ->
         other
     end
   end
 
+  # Options schema for client creation.
   defp client_schema do
     schema(%{
       keys:

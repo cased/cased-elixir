@@ -27,8 +27,6 @@ defmodule Cased.Publisher.HTTP do
           timeout: pos_integer() | :infinity
         }
 
-  @static_headers [{"content-type", "application/json"}]
-
   @doc """
   Start and link a publisher process.
   """
@@ -93,30 +91,12 @@ defmodule Cased.Publisher.HTTP do
   # Parse the raw `init/1` options to the configuration.
   @spec parse_config(opts :: init_opts()) :: config()
   defp parse_config(opts) do
-    headers =
-      [
-        authorization_header(opts[:key]),
-        user_agent_header()
-      ] ++ @static_headers
+    headers = Cased.Headers.create(opts[:key])
 
     opts
     |> Keyword.drop([:key])
     |> Keyword.put(:headers, headers)
     |> Map.new()
-  end
-
-  # Build the authorization header.
-  @spec authorization_header(key :: String.t()) :: Mojito.header()
-  defp authorization_header(key) do
-    {"authorization", "Bearer " <> key}
-  end
-
-  # Build the user-agent header.
-  @spec user_agent_header() :: Mojito.header()
-  defp user_agent_header() do
-    {:ok, vsn} = :application.get_key(:cased, :vsn)
-
-    {"user-agent", "cased-elixir/v" <> List.to_string(vsn)}
   end
 
   # Validate the options to `init/1`.
