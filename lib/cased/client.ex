@@ -1,8 +1,6 @@
 defmodule Cased.Client do
   import Norm
 
-  @default_audit_trail :default
-
   defstruct keys: %{},
             url: "https://api.cased.com",
             timeout: 15_000
