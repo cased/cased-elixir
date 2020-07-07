@@ -14,7 +14,9 @@ defmodule Cased.TestCase do
       setup context do
         case context[:bypass] do
           nil ->
-            {:ok, client: Cased.Client.create!(key: @example_key)}
+            {:ok,
+             client:
+               Cased.Client.create!(keys: [default: @example_key, organizations: @example_key2])}
 
           settings ->
             bypass = Bypass.open()

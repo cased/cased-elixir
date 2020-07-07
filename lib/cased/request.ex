@@ -4,7 +4,7 @@ defmodule Cased.Request do
   import Norm
 
   @enforce_keys [:client, :method, :path, :key]
-  defstruct [:client, :method, :path, :key, query: %{}, processor: nil]
+  defstruct [:client, :method, :path, :key, query: %{}, body: %{}, processor: nil]
 
   @type t :: %__MODULE__{
           client: Cased.Client.t(),
@@ -12,6 +12,7 @@ defmodule Cased.Request do
           path: String.t(),
           key: String.t(),
           query: map(),
+          body: map(),
           processor: atom()
         }
 
@@ -149,7 +150,17 @@ defmodule Cased.Request do
   defp process({:endpoint, "/events"}, response) do
     case process(:json, response) do
       {:ok, contents} ->
-        {:ok, Enum.map(Map.get(contents, "results", []), &Cased.Event.from_json/1)}
+        {:ok, Enum.map(Map.get(contents, "results", []), &Cased.Event.from_json!/1)}
+
+      err ->
+        err
+    end
+  end
+
+  defp process({:endpoint, "/exports"}, response) do
+    case process(:json, response) do
+      {:ok, raw_export} ->
+        {:ok, Cased.Export.from_json!(raw_export)}
 
       err ->
         err

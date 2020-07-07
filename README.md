@@ -249,7 +249,30 @@ end)
 
 ### Exporting events
 
-TK
+Exporting events from a Cased Policy allows you to provide users with exports of their own data or to respond to data requests.
+
+```elixir
+export =
+  client
+  |> Cased.Export.create(audit_trails: [:organizations, :users], fields: ~w(action timestamp))
+  |> Cased.Request.run()
+
+export.download_url
+# => https://api.cased.com/exports/export_1dSHQSNtAH90KA8zGTooMnmMdiD/download?token=eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoidXNlcl8xZFFwWThiQmdFd2RwbWRwVnJydER6TVg0ZkgiLCJ
+```
+
+The following options are available:
+
+- `:audit_trails` — The list of audit trails to export
+- `:audit_trail` — When passing a single audit trail, you can use this instead of `:audit_trails`.
+- `:fields` — The fields to export
+- `:key` — The Cased policy key allowing access to the audit trails and fields.
+
+The only required option is `:fields`.
+
+- When both `:audit_trail` and `:audit_trails` are omitted, `:audit_trail` is assumed to be `default`.
+- When `:key` is omitted, the key configured for the `:audit_trail` (or first of `:audit_trails`) in
+  the client is used.
 
 ### Masking & filtering sensitive information
 

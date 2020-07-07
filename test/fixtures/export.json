@@ -1,0 +1,12 @@
+{
+  "id": "export_1dQ9BRmzZAa8ktZIuhV92DPBke4",
+  "audit_trails": ["default"],
+  "download_url": "https://api.cased.com/exports/export_1dQ9BRmzZAa8ktZIuhV92DPBke4/download",
+  "events_found_count": 0,
+  "fields": ["action", "timestamp"],
+  "format": "json",
+  "phrase": null,
+  "state": "pending",
+  "updated_at": "2020-06-16T22:25:13.979551Z",
+  "created_at": "2020-06-16T22:25:13.979551Z"
+}

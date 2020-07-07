@@ -78,8 +78,8 @@ defmodule Cased.Event do
   end
 
   @doc false
-  @spec from_json(map()) :: t()
-  def from_json(event) do
+  @spec from_json!(map()) :: t()
+  def from_json!(event) do
     {:ok, created_at, _} = DateTime.from_iso8601(event["created_at"])
 
     %__MODULE__{
