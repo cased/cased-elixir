@@ -169,7 +169,7 @@ Provided you've [configured](#for-publisher) the Cased publisher, use `Cased.pub
 If you plan on retrieving events from your audit trails you must use an Cased Policy token.
 
 ```elixir
-client = Cased.Client.create(key: "policy_live_1dQpY5JliYgHSkEntAbMVzuOROh")
+{:ok, client} = Cased.Client.create(key: "policy_live_1dQpY5JliYgHSkEntAbMVzuOROh")
 
 events =
   client
