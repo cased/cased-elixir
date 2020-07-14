@@ -1,13 +1,14 @@
 defmodule Cased.Event do
   import Norm
 
-  defstruct [:audit_trail, :id, :url, :data, :created_at]
+  defstruct [:audit_trail, :id, :url, :data, :published_at, :processed_at]
 
   @type t :: %__MODULE__{
           audit_trail: Cased.AuditTrail.t(),
           id: String.t(),
           url: String.t(),
-          created_at: DateTime.t(),
+          published_at: DateTime.t(),
+          processed_at: DateTime.t(),
           data: %{String.t() => any()}
         }
 
@@ -80,13 +81,15 @@ defmodule Cased.Event do
   @doc false
   @spec from_json!(map()) :: t()
   def from_json!(event) do
-    {:ok, created_at, _} = DateTime.from_iso8601(event["created_at"])
+    {:ok, published_at, _} = DateTime.from_iso8601(event["published_at"])
+    {:ok, processed_at, _} = DateTime.from_iso8601(event["processed_at"])
 
     %__MODULE__{
       id: event["id"],
       audit_trail: Cased.AuditTrail.from_json(event["audit_trail"]),
       url: event["url"],
-      created_at: created_at,
+      published_at: published_at,
+      processed_at: processed_at,
       data: event["event"]
     }
   end
