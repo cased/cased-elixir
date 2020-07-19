@@ -57,7 +57,7 @@ children = [
   {
     Cased.Publisher.HTTP,
     key: System.get_env("CASED_PUBLISH_KEY") || Application.fetch_env!(:your_app, :cased_publish_key),
-    silence: Mix.env() != :prod
+    silence: System.get_env("CASED_SILENCE") || Application.fetch_env!(:your_app, :cased_silence, false),
   }
 ]
 
@@ -136,7 +136,7 @@ defmodule YourApp do
 
   def cased_client do
     default_policy_key = System.get_env("CASED_POLICY_KEY") || Application.fetch_env!(:your_app, :cased_policy_key)
-    Cased.Client.create!(key: default_policy_key, silence: Mix.env() != :prod)
+    Cased.Client.create!(key: default_policy_key)
   end
 end
 ```
@@ -276,7 +276,49 @@ The only required option is `:fields`.
 
 ### Masking & filtering sensitive information
 
-TK
+If you are handling sensitive information on behalf of your users, you should consider masking or filtering any sensitive information.
+
+You can do this manually by using `Cased.Sensitive.String.new/2`:
+
+```elixir
+%{
+  action: "credit_card.charge",
+  user: Cased.Sensitive.String.new("john@example.com", label: :email)
+}
+|> Cased.publish()
+```
+
+You can also use handlers to find sensitive values for you automatically. Here's an example checking for usernames:
+
+```elixir
+username_handler = {Cased.Sensitive.RegexHandler, :username, ~r<@\w+>}
+
+%{
+  action: "comment.create",
+  body: "@username, I'm not sure."
+}
+|> Cased.publish(handlers: [username_handler])
+```
+
+If you're regularly using the same handlers, consider storing them in your application config and defining your own function to use them in your application:
+
+```elixir
+defmodule MyApp do
+
+  @doc """
+  Publish an audit event to Cased.
+  """
+  @spec publish_to_cased(audit_event :: map()) :: :ok | {:error, any()}
+  def publish_to_cased(audit_event) do
+    handlers = Application.get_env(:my_app, :cased_handlers, [])
+
+    audit_event
+    |> Cased.publish(handlers: handlers)
+  end
+end
+```
+
+For more information, see the `Cased.Sensitive.Handler` module.
 
 ### Console Usage
 

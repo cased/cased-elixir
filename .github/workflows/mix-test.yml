@@ -6,14 +6,17 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        otp: ['21.3', '22.3', '23.0']
+        elixir: ['1.9.4', '1.10.4']
     steps:
     - uses: actions/checkout@v2
     - name: Setup elixir
       uses: actions/setup-elixir@v1
       with:
-        elixir-version: '1.9.4' # Define the elixir version [required]
-        otp-version: '22.2' # Define the OTP version [required]
+        otp-version: ${{matrix.otp}}
+        elixir-version: ${{matrix.elixir}}
     - name: Install Dependencies
       run: mix deps.get
     - name: Run Tests
