@@ -330,7 +330,61 @@ TK
 
 ### Context
 
-TK
+One of the most easiest ways to publish detailed events to Cased is to push contextual information into the Cased context.
+
+**Note that the Cased context is tied to the current process** (it's actually stored in the [process dictionary](https://hexdocs.pm/elixir/Process.html)). Different process, different context.
+
+```elixir
+Cased.Context.merge(location: "hostname.local")
+
+%{
+  action: "console.start",
+  user: "john"
+}
+|> Cased.publish()
+```
+
+Any information stored using `Cased.Context` will be included any time an event is published.
+
+```json
+{
+  "cased_id": "5f8559cd-4cd9-48c3-b1d0-6eedc4019ec1",
+  "action": "user.login",
+  "user": "john",
+  "location": "hostname.local",
+  "timestamp": "2020-06-22T21:43:06.157336"
+}
+```
+
+You can provide `Cased.Context.merge/3` a function and the context will only be present for the duration of the function execution:
+
+```elixir
+Cased.Context.merge(location: "hostname.local") do
+  # Will include { "location": "hostname.local" }
+  %{
+    action: "console.start",
+    user: "john"
+  }
+  |> Cased.publish()
+end
+
+# Will not include {"location": "hostname.local"}
+%{
+  action: "console.end",
+  user: "john"
+}
+|> Cased.publish()
+```
+
+(You can also use `Cased.Context.put/2` and `Cased.Context.put/3` for single-value additions to the context.)
+
+To reset the context, use `Cased.Context.reset/0`:
+
+```elixir
+Cased.Context.reset()
+```
+
+See the `Cased.Context` module for more information.
 
 ### Testing
 

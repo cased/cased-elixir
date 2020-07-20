@@ -4,7 +4,7 @@ defmodule Cased.MixProject do
   def project do
     [
       app: :cased,
-      version: "0.1.0",
+      version: "0.1.0-alpha",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -29,7 +29,8 @@ defmodule Cased.MixProject do
       {:bypass, "~> 1.0", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:norm, "~> 0.12"},
-      {:plug, "~> 1.10.3"}
+      {:plug, "~> 1.10.3"},
+      {:deep_merge, "~> 1.0.0"}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]

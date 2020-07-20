@@ -42,10 +42,14 @@ defmodule Cased do
 
   @spec publish(data :: term(), opts :: publish_opts()) ::
           :ok | {:error, Jason.EncodeError.t() | Exception.t()}
-  def publish(data, opts) do
+  def publish(data, opts \\ []) do
     opts =
       @default_publish_opts
       |> Keyword.merge(opts)
+
+    data =
+      data
+      |> Map.merge(Cased.Context.to_map())
 
     case validate_publish_opts(opts) do
       {:ok, %{publisher: publisher, handlers: handlers}} ->
