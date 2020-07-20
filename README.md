@@ -87,7 +87,7 @@ examples below.
 
 #### Examples
 
-Create a client with the policy key for your `default` audit trail:
+Create a client with the policy key for your `:default` audit trail:
 
 ```elixir
 {:ok, client} = Cased.Client.create(key: "policy_live_...")

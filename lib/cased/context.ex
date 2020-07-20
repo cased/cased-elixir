@@ -119,7 +119,7 @@ defmodule Cased.Context do
   :your_return_value
   ```
 
-  Note that, unlike `merge/2`, the return value of `merge/3` is the value of the
+  Note that, unlike `merge/1`, the return value of `merge/2` is the value of the
   last statement in your function.
   """
   @spec merge(data :: map(), function()) :: any()

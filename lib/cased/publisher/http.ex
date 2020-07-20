@@ -1,4 +1,7 @@
 defmodule Cased.Publisher.HTTP do
+  @moduledoc """
+  A publisher used to transmit audit events to Cased via HTTP/S.
+  """
   use GenServer
 
   import Norm

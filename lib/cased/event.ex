@@ -1,4 +1,7 @@
 defmodule Cased.Event do
+  @moduledoc """
+  Data modeling a Cased audit event.
+  """
   import Norm
 
   defstruct [:audit_trail, :id, :url, :data, :published_at, :processed_at]

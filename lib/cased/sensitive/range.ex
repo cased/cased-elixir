@@ -1,4 +1,6 @@
 defmodule Cased.Sensitive.Range do
+  @moduledoc false
+
   @enforce_keys [:key, :begin_offset, :end_offset]
   defstruct [
     :key,

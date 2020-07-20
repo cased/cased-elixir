@@ -1,4 +1,8 @@
 defmodule Cased.Sensitive.String do
+  @moduledoc """
+  Used to mask sensitive string values.
+  """
+
   @enforce_keys [:data, :label]
   defstruct [
     :data,

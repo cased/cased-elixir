@@ -1,4 +1,7 @@
 defmodule Cased.Export do
+  @moduledoc """
+  Data modeling a Cased export.
+  """
   import Norm
 
   @enforce_keys [

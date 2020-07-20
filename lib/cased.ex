@@ -6,20 +6,17 @@ defmodule Cased do
   import Norm
 
   defmodule ConfigurationError do
+    @moduledoc false
     use Cased.Error, "invalid configuration options were provided"
   end
 
   defmodule RequestError do
-    @moduledoc """
-    Models an error that occurred during request configuration.
-    """
+    @moduledoc false
     use Cased.Error, "invalid request configuration"
   end
 
   defmodule ResponseError do
-    @moduledoc """
-    Models an error that occurred while retrieving a response or processing it.
-    """
+    @moduledoc false
     defexception message: "invalid response", details: nil, response: nil
 
     @type t :: %__MODULE__{
@@ -40,20 +37,23 @@ defmodule Cased do
     handlers: []
   ]
 
-  @spec publish(data :: term(), opts :: publish_opts()) ::
+  @doc """
+  Publish an audit event to Cased.
+  """
+  @spec publish(audit_event :: map(), opts :: publish_opts()) ::
           :ok | {:error, Jason.EncodeError.t() | Exception.t()}
-  def publish(data, opts \\ []) do
+  def publish(audit_event, opts \\ []) do
     opts =
       @default_publish_opts
       |> Keyword.merge(opts)
 
-    data =
-      data
+    audit_event =
+      audit_event
       |> Map.merge(Cased.Context.to_map())
 
     case validate_publish_opts(opts) do
       {:ok, %{publisher: publisher, handlers: handlers}} ->
-        Cased.Sensitive.Processor.process(data, handlers: handlers)
+        Cased.Sensitive.Processor.process(audit_event, handlers: handlers)
         |> do_publish(publisher)
 
       {:error, details} ->
@@ -73,6 +73,9 @@ defmodule Cased do
     end
   end
 
+  @doc """
+  Publish an audit event to Cased, raising an exception in the event of failure.
+  """
   @spec publish!(data :: term(), opts :: publish_opts()) :: :ok | no_return()
   def publish!(data, opts \\ []) do
     case publish(data, opts) do

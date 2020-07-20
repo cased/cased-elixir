@@ -9,6 +9,11 @@ defmodule Cased.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       package: package(),
+      docs: [
+        main: "readme",
+        logo: "priv/images/cased.png",
+        extras: ["README.md"]
+      ],
       elixirc_paths: elixirc_paths(Mix.env())
     ]
   end

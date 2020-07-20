@@ -1,4 +1,7 @@
 defmodule Cased.Client do
+  @moduledoc """
+  A client for the Cased API.
+  """
   import Norm
 
   defstruct keys: %{},
@@ -22,6 +25,87 @@ defmodule Cased.Client do
           | {:url, String.t()}
           | {:timeout, pos_integer() | :infinity}
 
+  @doc """
+  Create a Cased client.
+
+  ## Examples
+
+  Create a client with the policy key for your `default` audit trail:
+
+  ```
+  iex> {:ok, client} = Cased.Client.create(key: "policy_live_...")
+  ```
+
+  Create a client key with policy keys for specific audit trails:
+
+  ```elixir
+  iex> {:ok, client} = Cased.Client.create(
+  ...>   keys: [
+  ...>     default: "policy_live_...",
+  ...>     users: "policy_live_users..."
+  ...>   ]
+  ...> )
+  ```
+
+  Clients can be configured using runtime environment variables, your application
+  configuration, hardcoded values, or any combination you choose.
+
+  Just using runtime environment variable:
+
+  ```
+  iex> {:ok, client} = Cased.Client.create(
+  ...>   key: System.fetch_env!("CASED_POLICY_KEY")
+  ...> )
+  ```
+
+  Just using application configuration:
+
+  ```
+  iex> {:ok, client} = Cased.Client.create(
+  ...>   key: Application.fetch_env!(:your_app, :cased_policy_key)
+  ...> )
+  ```
+
+  Either/or:
+
+  ```
+  iex> {:ok, client} = Cased.Client.create!
+  ...>   (key: System.get_env("CASED_POLICY_KEY") || Application.fetch_env!(:your_app, :cased_policy_key)
+  ...> )
+  ```
+
+  In the event your client is misconfigured, you'll get a `Cased.ConfigurationError` exception struct instead:
+
+  Not providing required options:
+
+  ```
+  iex> {:error, %Cased.ConfigurationError{}} = Cased.Client.create()
+  ```
+
+  You can also use `Cased.Client.create!/1` if you know you're passing the correct configuration options (otherwise it raises a `Cased.ConfigurationError` exception):
+
+  ```
+  iex> client = Cased.Client.create!(key: "policy_live_...")
+  ```
+
+  To simplify using clients across your application, consider writing a centralized function to handle constructing them:
+
+  ```
+  defmodule YourApp do
+
+    # Rest of contents ...
+
+    def cased_client do
+      default_policy_key = System.get_env("CASED_POLICY_KEY")
+        || Application.fetch_env!(:your_app, :cased_policy_key)
+      Cased.Client.create!(key: default_policy_key)
+    end
+  end
+  ```
+
+  For reuse, consider caching your client structs in `GenServer` state, ETS, or another Elixir caching mechanism.
+
+  """
   @spec create(opts :: create_opts()) :: {:ok, t()} | {:error, any()}
   def create(opts \\ []) do
     simple_opts = Keyword.take(opts, [:url, :timeout])
@@ -31,6 +115,9 @@ defmodule Cased.Client do
     |> validate()
   end
 
+  @doc """
+  Create a client or raise an exception.
+  """
   @spec create!(opts :: create_opts()) :: t() | no_return()
   def create!(opts) do
     case create(opts) do

@@ -1,4 +1,8 @@
 defmodule Cased.AuditTrail do
+  @moduledoc """
+  Data modeling a Cased audit trail.
+  """
+
   @enforce_keys [:id, :name]
   defstruct [:id, :name]
 
