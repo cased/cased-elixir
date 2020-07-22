@@ -15,15 +15,22 @@ defmodule Cased.Sensitive.HandlerTest do
     This is more complete than needed for testing, but serves as an example
     of a more complicated sensitive data detection scenario.
     """
-    def ranges(handler, _audit_event, {key, value}) do
+    def ranges(handler, audit_event, {key, value}) when is_binary(value) do
+      value =
+        value
+        |> Cased.Sensitive.String.new()
+
+      ranges(handler, audit_event, {key, value})
+    end
+
+    def ranges(handler, _audit_event, {key, %Cased.Sensitive.String{} = value}) do
       value
-      |> Cased.Sensitive.String.new()
       # [Naively] find all the integers
       |> Cased.Sensitive.String.matches(~r/\d+/)
       |> Enum.reduce([], fn {begin_offset, end_offset}, acc ->
         # Extract the integer and parse it
         {integer, ""} =
-          value
+          value.data
           |> String.slice(begin_offset..(end_offset - 1))
           |> Integer.parse()
 
@@ -45,6 +52,8 @@ defmodule Cased.Sensitive.HandlerTest do
         end
       end)
     end
+
+    def ranges(_handler, _audit_event, _pair), do: []
   end
 
   describe "from_spec/1" do

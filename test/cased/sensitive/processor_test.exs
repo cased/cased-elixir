@@ -10,7 +10,7 @@ defmodule Cased.Sensitive.ProcessorTest do
   end
 
   describe "process/2" do
-    test "processes audit event with types" do
+    test "processes audit event with various value types" do
       result =
         Cased.Sensitive.Processor.process(%{
           string: "string",
@@ -20,7 +20,7 @@ defmodule Cased.Sensitive.ProcessorTest do
           empty: nil,
           date: ~U[2020-07-22 13:25:22.390906Z],
           nested: %{
-            string: "nested",
+            string: "nested"
           }
         })
 
@@ -32,7 +32,41 @@ defmodule Cased.Sensitive.ProcessorTest do
         empty: nil,
         date: ~U[2020-07-22 13:25:22.390906Z],
         nested: %{
-          string: "nested",
+          string: "nested"
+        }
+      }
+
+      assert expected_result == result
+    end
+
+    test "processes audit event with various value types using handlers", %{
+      username_handler: username_handler
+    } do
+      result =
+        Cased.Sensitive.Processor.process(
+          %{
+            string: "string",
+            int: 1234,
+            float: 12.34,
+            bool: true,
+            empty: nil,
+            date: ~U[2020-07-22 13:25:22.390906Z],
+            nested: %{
+              string: "nested"
+            }
+          },
+          handlers: [username_handler]
+        )
+
+      expected_result = %{
+        string: "string",
+        int: 1234,
+        float: 12.34,
+        bool: true,
+        empty: nil,
+        date: ~U[2020-07-22 13:25:22.390906Z],
+        nested: %{
+          string: "nested"
         }
       }
 
