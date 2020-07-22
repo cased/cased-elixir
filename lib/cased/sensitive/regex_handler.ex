@@ -32,9 +32,16 @@ defmodule Cased.Sensitive.RegexHandler do
   def new(label, regex), do: %__MODULE__{label: label, regex: regex}
 
   @impl Cased.Sensitive.Handler
-  def ranges(handler, _audit_event, {key, value}) do
+  def ranges(handler, audit_event, {key, value}) when is_binary(value) do
+    value =
+      value
+      |> Cased.Sensitive.String.new()
+
+    ranges(handler, audit_event, {key, value})
+  end
+
+  def ranges(handler, _audit_event, {key, %Cased.Sensitive.String{} = value}) do
     value
-    |> Cased.Sensitive.String.new()
     |> Cased.Sensitive.String.matches(handler.regex)
     |> Enum.map(fn {begin_offset, end_offset} ->
       %Cased.Sensitive.Range{
@@ -45,4 +52,6 @@ defmodule Cased.Sensitive.RegexHandler do
       }
     end)
   end
+
+  def ranges(_handler, _audit_event, _pair), do: []
 end

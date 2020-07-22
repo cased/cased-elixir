@@ -47,6 +47,9 @@ defmodule Cased.Sensitive.Handler do
 
   @doc """
   Extract `Cased.Sensitive.Range` structs for a given `value` at `key`.
+
+  Note that `value` can be of any type; your implementation should return an
+  empty list for any unsupported values.
   """
   @callback ranges(
               handler :: t(),
