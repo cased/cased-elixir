@@ -140,8 +140,7 @@ defmodule Cased.Sensitive.Processor do
          {processed_node, node_pii} = _acc,
          audit_event,
          handlers
-       )
-       when is_binary(value) do
+       ) do
     case ranges(handlers, audit_event, key, value) do
       [] ->
         {
