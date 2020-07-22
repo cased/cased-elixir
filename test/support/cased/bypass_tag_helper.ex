@@ -60,15 +60,41 @@ defmodule Cased.BypassTagHelper do
   defp do_configure_bypass(bypass, settings) do
     status = Map.get(settings, :status, 200)
 
-    if status in 200..299 do
-      Bypass.expect_once(bypass, fn conn ->
-        fixture = File.read!("test/fixtures/#{settings.fixture}.json")
-        Plug.Conn.resp(conn, status, fixture)
-      end)
-    else
-      Bypass.expect_once(bypass, fn conn ->
-        Plug.Conn.resp(conn, status, Map.get(settings, :body, ""))
-      end)
+    fixture =
+      case Map.get(settings, :fixture) do
+        nil ->
+          nil
+
+        :empty ->
+          ""
+
+        name ->
+          File.read!("test/fixtures/#{name}.json")
+      end
+
+    cond do
+      status in 200..299 ->
+        Bypass.expect_once(bypass, fn conn ->
+          Plug.Conn.resp(conn, status, fixture)
+        end)
+
+      status == 302 ->
+        redirect_url = "http://localhost:#{bypass.port}#{settings.redirect_path}"
+
+        Bypass.expect_once(bypass, fn conn ->
+          conn
+          |> Plug.Conn.put_resp_header("location", redirect_url)
+          |> Plug.Conn.resp(status, "")
+        end)
+
+        Bypass.expect_once(bypass, "GET", settings.redirect_path, fn conn ->
+          Plug.Conn.resp(conn, settings.redirect_status, fixture)
+        end)
+
+      true ->
+        Bypass.expect_once(bypass, fn conn ->
+          Plug.Conn.resp(conn, status, Map.get(settings, :body, ""))
+        end)
     end
   end
 end

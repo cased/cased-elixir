@@ -66,6 +66,11 @@ defmodule Cased.Export do
   - When both `:audit_trail` and `:audit_trails` are omitted, `:audit_trail` is assumed to be `default`.
   - When `:key` is omitted, the key configured for the `:audit_trail` (or first of `:audit_trails`) in
   the client is used.
+
+  ## Response
+
+  When the resulting request is sucessfully executed by `Cased.Request.run/2` or
+  `Cased.Request.run/1`, a `Cased.Export` struct is returned.
   """
   @spec create(client :: Cased.Client.t(), opts :: create_opts()) ::
           Cased.Request.t() | no_return()
@@ -143,6 +148,86 @@ defmodule Cased.Export do
     )
   end
 
+  @type get_opts :: [get_opt()]
+  @type get_opt :: {:key, String.t()}
+
+  @doc """
+  Build a request to retrieve data about an export.
+
+  ## Options
+
+  The following options are available:
+
+  - `:key` — A Cased policy key allowing access to the export.
+
+  When `:key` is omitted, the key for the `:default` audit trail is used.
+
+  ## Response
+
+  When the resulting request is sucessfully executed by `Cased.Request.run/2` or
+  `Cased.Request.run/1`, a `Cased.Export` struct is returned.
+
+  ## Example
+
+  A basic example:
+
+  ```
+  iex> client
+  ...> |> Cased.Export.get("export_...")
+  ...> |> Cased.Request.run!
+  %Cased.Export{id: "export_...", ...}
+  ```
+  """
+  @spec get(client :: Cased.Client.t(), id :: String.t(), opts :: get_opts()) :: Cased.Request.t()
+  def get(client, id, opts \\ []) do
+    %Cased.Request{
+      client: client,
+      method: :get,
+      path: "/exports/#{id}",
+      key: opts[:key] || Map.fetch!(client.keys, :default)
+    }
+  end
+
+  @doc """
+  Build a request to retrieve the export download.
+
+  ## Options
+
+  The following options are available:
+
+  - `:key` — A Cased policy key allowing access to the export.
+
+  When `:key` is omitted, the key for the `:default` audit trail is used.
+
+  ## Response
+
+  When the resulting request is sucessfully executed by `Cased.Request.run/2` or
+  `Cased.Request.run/1`, a raw JSON string is returned. The JSON is _not_ decoded
+  automatically.
+
+  ## Example
+
+  A basic example:
+
+  ```
+  iex> client
+  ...> |> Cased.Export.get_download("export_...")
+  ...> |> Cased.Request.run!
+  "{...}"
+  ```
+  """
+  @spec get_download(client :: Cased.Client.t(), id :: String.t(), opts :: get_opts()) ::
+          Cased.Request.t()
+  def get_download(client, id, opts \\ []) do
+    %Cased.Request{
+      client: client,
+      method: :get,
+      path: "/exports/#{id}/download",
+      key: opts[:key] || Map.fetch!(client.keys, :default)
+    }
+  end
+
+  @doc false
   @spec from_json!(map()) :: t() | no_return()
   def from_json!(data) do
     data =
@@ -164,6 +249,7 @@ defmodule Cased.Export do
     }
   end
 
+  @spec normalize_datetime(nil | String.t()) :: DateTime.t()
   defp normalize_datetime(nil), do: nil
 
   defp normalize_datetime(datetime) do

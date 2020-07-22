@@ -4,7 +4,14 @@ defmodule Cased.Request do
   import Norm
 
   @enforce_keys [:client, :method, :path, :key]
-  defstruct [:client, :method, :path, :key, query: %{}, body: %{}, processor: nil]
+  defstruct [
+    :client,
+    :method,
+    :path,
+    :key,
+    query: %{},
+    body: %{}
+  ]
 
   @type t :: %__MODULE__{
           client: Cased.Client.t(),
@@ -12,8 +19,7 @@ defmodule Cased.Request do
           path: String.t(),
           key: String.t(),
           query: map(),
-          body: map(),
-          processor: atom()
+          body: map()
         }
 
   ##
@@ -22,6 +28,8 @@ defmodule Cased.Request do
   @type response_processing_strategy :: :raw | :decoded | :transformed
   @type run_opts :: [run_opt()]
   @type run_opt :: {:response, response_processing_strategy()}
+
+  @type run_result :: {:ok, any()} | {:error, Cased.ResponseError.t() | Cased.RequestError.t()}
 
   @default_run_opts [response: :transformed]
 
@@ -38,7 +46,7 @@ defmodule Cased.Request do
     - `:transformed` — Return data after endpoint-specific transformation.
   """
   @spec run(request :: Cased.Request.t(), opts :: run_opts()) ::
-          {:ok, any()} | {:error, Cased.ResponseError.t() | Cased.RequestError.t()}
+          run_result()
   def run(request, opts \\ []) do
     opts =
       @default_run_opts
@@ -73,7 +81,7 @@ defmodule Cased.Request do
     |> case do
       {:ok, %{status_code: status} = response} ->
         cond do
-          Enum.member?(200..299, status) ->
+          Enum.member?(200..299, status) or status == 302 ->
             request
             |> response_processor(opts[:response])
             |> process(response)
@@ -121,14 +129,14 @@ defmodule Cased.Request do
   ##
   # Response Processing
 
-  @type response_processor :: nil | :json | {:endpoint, String.t()}
+  @type response_processor :: nil | :json | {:request, t()}
 
   # Find the response processor given a request and a selected processing strategy.
   @spec response_processor(
           request :: Cased.Request.t(),
           strategy :: response_processing_strategy()
         ) :: response_processor()
-  defp response_processor(request, :transformed), do: {:endpoint, request.path}
+  defp response_processor(request, :transformed), do: {:request, request}
   defp response_processor(_request, :raw), do: nil
   defp response_processor(_request, :decoded), do: :json
 
@@ -147,7 +155,7 @@ defmodule Cased.Request do
     end
   end
 
-  defp process({:endpoint, "/events"}, response) do
+  defp process({:request, %{method: :get, path: "/events"}}, response) do
     case process(:json, response) do
       {:ok, contents} ->
         {:ok, Enum.map(Map.get(contents, "results", []), &Cased.Event.from_json!/1)}
@@ -157,13 +165,38 @@ defmodule Cased.Request do
     end
   end
 
-  defp process({:endpoint, "/exports"}, response) do
+  defp process({:request, %{method: :post, path: "/exports"}}, response) do
     case process(:json, response) do
       {:ok, raw_export} ->
         {:ok, Cased.Export.from_json!(raw_export)}
 
       err ->
         err
+    end
+  end
+
+  defp process({:request, %{method: :get, path: "/exports/" <> export_path}}, response)
+       when byte_size(export_path) > 0 do
+    if String.ends_with?(export_path, "/download") do
+      case response.status_code do
+        202 ->
+          {:ok, :pending}
+
+        302 ->
+          export_download(response)
+
+        unknown ->
+          {:error,
+           %Cased.ResponseError{message: "unexpected status code #{unknown}", response: response}}
+      end
+    else
+      case process(:json, response) do
+        {:ok, raw_export} ->
+          {:ok, Cased.Export.from_json!(raw_export)}
+
+        err ->
+          err
+      end
     end
   end
 
@@ -205,5 +238,30 @@ defmodule Cased.Request do
       end,
       & &1
     )
+  end
+
+  @spec export_download(response :: Mojito.response()) :: run_result()
+  defp export_download(response) do
+    case Mojito.Headers.get(response.headers, "location") do
+      nil ->
+        {:error,
+         %Cased.ResponseError{
+           message: "no location header found in HTTP 302 response",
+           response: response
+         }}
+
+      location ->
+        Mojito.request(
+          :get,
+          location
+        )
+        |> case do
+          {:ok, %{status_code: 200} = response} ->
+            {:ok, response.body}
+
+          {:error, other} ->
+            {:error, %Cased.ResponseError{response: other}}
+        end
+    end
   end
 end

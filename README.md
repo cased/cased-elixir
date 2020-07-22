@@ -274,6 +274,30 @@ The only required option is `:fields`.
 - When `:key` is omitted, the key configured for the `:audit_trail` (or first of `:audit_trails`) in
   the client is used.
 
+#### Retrieving an Export
+
+You can retrieve data about an export using `Cased.Export.get/2` (or `Cased.Export.get/3`):
+
+```
+iex> client
+...> |> Cased.Export.get("export_...")
+...> |> Cased.Request.run!
+%Cased.Export{id: "export_...", ...}
+```
+
+To download the JSON data for an export, use `Cased.Export.get_download/2` (or `Cased.Export.get_download/3`).
+
+```
+iex> client
+...> |> Cased.Export.get_download("export_...")
+...> |> Cased.Request.run!
+"{...}"
+```
+
+(Note that the raw JSON string is returned; no automatic decoding is attempted.)
+
+For more information, see the documentation for `Cased.Export.get/3` and `Cased.Export.get_download/3`.
+
 ### Masking & filtering sensitive information
 
 If you are handling sensitive information on behalf of your users, you should consider masking or filtering any sensitive information.
