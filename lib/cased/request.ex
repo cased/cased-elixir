@@ -3,9 +3,10 @@ defmodule Cased.Request do
 
   import Norm
 
-  @enforce_keys [:client, :method, :path, :key]
+  @enforce_keys [:client, :id, :method, :path, :key]
   defstruct [
     :client,
+    :id,
     :method,
     :path,
     :key,
@@ -15,6 +16,7 @@ defmodule Cased.Request do
 
   @type t :: %__MODULE__{
           client: Cased.Client.t(),
+          id: atom(),
           method: :get | :post,
           path: String.t(),
           key: String.t(),
@@ -155,7 +157,7 @@ defmodule Cased.Request do
     end
   end
 
-  defp process({:request, %{method: :get, path: "/events"}}, response) do
+  defp process({:request, %{id: id}}, response) when id in [:events, :audit_trail_events] do
     case process(:json, response) do
       {:ok, contents} ->
         {:ok, Enum.map(Map.get(contents, "results", []), &Cased.Event.from_json!/1)}
@@ -165,7 +167,17 @@ defmodule Cased.Request do
     end
   end
 
-  defp process({:request, %{method: :post, path: "/exports"}}, response) do
+  defp process({:request, %{id: :audit_trail_event}}, response) do
+    case process(:json, response) do
+      {:ok, contents} ->
+        {:ok, Cased.Event.from_json!(contents)}
+
+      err ->
+        err
+    end
+  end
+
+  defp process({:request, %{id: :export_create}}, response) do
     case process(:json, response) do
       {:ok, raw_export} ->
         {:ok, Cased.Export.from_json!(raw_export)}
@@ -175,28 +187,27 @@ defmodule Cased.Request do
     end
   end
 
-  defp process({:request, %{method: :get, path: "/exports/" <> export_path}}, response)
-       when byte_size(export_path) > 0 do
-    if String.ends_with?(export_path, "/download") do
-      case response.status_code do
-        202 ->
-          {:ok, :pending}
+  defp process({:request, %{id: :export_download}}, response) do
+    case response.status_code do
+      202 ->
+        {:ok, :pending}
 
-        302 ->
-          export_download(response)
+      302 ->
+        export_download(response)
 
-        unknown ->
-          {:error,
-           %Cased.ResponseError{message: "unexpected status code #{unknown}", response: response}}
-      end
-    else
-      case process(:json, response) do
-        {:ok, raw_export} ->
-          {:ok, Cased.Export.from_json!(raw_export)}
+      unknown ->
+        {:error,
+         %Cased.ResponseError{message: "unexpected status code #{unknown}", response: response}}
+    end
+  end
 
-        err ->
-          err
-      end
+  defp process({:request, %{id: :export}}, response) do
+    case process(:json, response) do
+      {:ok, raw_export} ->
+        {:ok, Cased.Export.from_json!(raw_export)}
+
+      err ->
+        err
     end
   end
 

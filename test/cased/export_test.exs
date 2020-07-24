@@ -7,9 +7,10 @@ defmodule Cased.ExportTest do
     test "creates a request when given simple options", %{client: client} do
       assert %Cased.Request{
                client: ^client,
+               id: :export_create,
                method: :post,
                path: "/exports",
-               key: @example_key2,
+               key: @organizations_key,
                body: %{
                  format: "json",
                  audit_trails: [:organizations],
@@ -25,9 +26,10 @@ defmodule Cased.ExportTest do
     test "creates a request, customizing the key", %{client: client} do
       assert %Cased.Request{
                client: ^client,
+               id: :export_create,
                method: :post,
                path: "/exports",
-               key: @example_key,
+               key: @default_key,
                body: %{
                  format: "json",
                  audit_trails: [:organizations, :default],
@@ -37,7 +39,7 @@ defmodule Cased.ExportTest do
                Cased.Export.create(client,
                  audit_trails: [:organizations, :default],
                  # for policy with default audit trail
-                 key: @example_key,
+                 key: @default_key,
                  fields: ~w(actions timestamp)
                )
     end
@@ -45,9 +47,10 @@ defmodule Cased.ExportTest do
     test "creates a request, passing a single audit trail", %{client: client} do
       assert %Cased.Request{
                client: ^client,
+               id: :export_create,
                method: :post,
                path: "/exports",
-               key: @example_key2,
+               key: @organizations_key,
                body: %{
                  format: "json",
                  audit_trails: [:organizations],
@@ -63,9 +66,10 @@ defmodule Cased.ExportTest do
     test "creates a request, just using the :fields option", %{client: client} do
       assert %Cased.Request{
                client: ^client,
+               id: :export_create,
                method: :post,
                path: "/exports",
-               key: @example_key,
+               key: @default_key,
                body: %{
                  format: "json",
                  audit_trails: [:default],
@@ -113,10 +117,11 @@ defmodule Cased.ExportTest do
   describe "get/2" do
     test "creates a request when given an id", %{client: client} do
       assert %Cased.Request{
+               id: :export,
                client: client,
                method: :get,
                path: "/exports/#{@export_id}",
-               key: @example_key
+               key: @default_key
              } == Cased.Export.get(client, @export_id)
     end
   end
@@ -125,9 +130,10 @@ defmodule Cased.ExportTest do
     test "creates a request when given an id", %{client: client} do
       assert %Cased.Request{
                client: client,
+               id: :export_download,
                method: :get,
                path: "/exports/#{@export_id}/download",
-               key: @example_key
+               key: @default_key
              } == Cased.Export.get_download(client, @export_id)
     end
 

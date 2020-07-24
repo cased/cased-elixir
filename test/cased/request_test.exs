@@ -32,6 +32,18 @@ defmodule Cased.RequestTest do
       assert 1 == length(events)
     end
 
+    @tag bypass: [fixture: "events"]
+    test "returns events for a specific audit trail when provided in the response", %{
+      client: client
+    } do
+      events =
+        client
+        |> Cased.Event.query(audit_trail: :organizations)
+        |> Cased.Request.run!()
+
+      assert 1 == length(events)
+    end
+
     @tag bypass: [fixture: "events", paginated: true]
     test "returns events when provided in the response, requested page by page", %{
       client: client
@@ -88,6 +100,32 @@ defmodule Cased.RequestTest do
         |> Cased.Event.query()
         |> Cased.Request.run!()
       end
+    end
+
+    @event_id "event_1dT9pc2vFotPWgMCLRmwgGDdeDp"
+
+    @tag bypass: [fixture: "event"]
+    test "returns an event when requested without an audit trail", %{
+      client: client
+    } do
+      result =
+        client
+        |> Cased.Event.get(@event_id)
+        |> Cased.Request.run!()
+
+      assert %Cased.Event{id: @event_id} = result
+    end
+
+    @tag bypass: [fixture: "event"]
+    test "returns an event when requested with an audit trail", %{
+      client: client
+    } do
+      result =
+        client
+        |> Cased.Event.get(@event_id, audit_trail: :organizations)
+        |> Cased.Request.run!()
+
+      assert %Cased.Event{id: @event_id} = result
     end
   end
 

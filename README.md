@@ -183,6 +183,14 @@ events
 end)
 ```
 
+You can also retrieve an event by ID and audit trail:
+
+```elixir
+event =
+  Cased.Event.get(client, "event_...", audit_trail: :organizations)
+  |> Cased.Request.run!()
+```
+
 ### Retrieving events from a Cased Policy containing variables
 
 Cased policies allow you to filter events by providing variables to your Cased

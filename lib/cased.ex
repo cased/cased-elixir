@@ -7,12 +7,30 @@ defmodule Cased do
 
   defmodule ConfigurationError do
     @moduledoc false
-    use Cased.Error, "invalid configuration options were provided"
+    defexception message: "invalid configuration", details: nil
+
+    @type t :: %__MODULE__{
+            message: String.t(),
+            details: nil | any()
+          }
+
+    def message(exc) do
+      "#{exc.message}\ndetails #{inspect(exc.details)}"
+    end
   end
 
   defmodule RequestError do
     @moduledoc false
-    use Cased.Error, "invalid request configuration"
+    defexception message: "invalid request configuration", details: nil
+
+    @type t :: %__MODULE__{
+            message: String.t(),
+            details: nil | any()
+          }
+
+    def message(exc) do
+      "#{exc.message}\ndetails #{inspect(exc.details)}"
+    end
   end
 
   defmodule ResponseError do
@@ -21,9 +39,17 @@ defmodule Cased do
 
     @type t :: %__MODULE__{
             message: String.t(),
-            response: nil | Mojito.response(),
-            details: nil | any()
+            details: nil | any(),
+            response: nil | Mojito.response()
           }
+
+    def message(%{response: nil} = exc) do
+      "#{exc.message}\ndetails #{inspect(exc.details)}\nstatus code: (none)"
+    end
+
+    def message(exc) do
+      "#{exc.message}\ndetails #{inspect(exc.details)}\nstatus code: #{exc.status_code}"
+    end
   end
 
   @type publish_opts :: [publish_opt()]

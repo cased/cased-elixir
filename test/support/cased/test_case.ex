@@ -4,8 +4,8 @@ defmodule Cased.TestCase do
       use ExUnit.Case, async: true
       import Cased.BypassTagHelper
 
-      @example_key "policy_test_FOO"
-      @example_key2 "policy_test_BAR"
+      @default_key "policy_test_FOO"
+      @organizations_key "policy_test_BAR"
 
       @bad_key "policy_bad_FOO"
       @bad_key2 "publish_live_FOO"
@@ -16,7 +16,9 @@ defmodule Cased.TestCase do
           nil ->
             {:ok,
              client:
-               Cased.Client.create!(keys: [default: @example_key, organizations: @example_key2])}
+               Cased.Client.create!(
+                 keys: [default: @default_key, organizations: @organizations_key]
+               )}
 
           settings ->
             bypass = Bypass.open()
@@ -26,7 +28,10 @@ defmodule Cased.TestCase do
             {:ok,
              bypass: bypass,
              client:
-               Cased.Client.create!(key: @example_key, url: "http://localhost:#{bypass.port}")}
+               Cased.Client.create!(
+                 keys: [default: @default_key, organizations: @organizations_key],
+                 url: "http://localhost:#{bypass.port}"
+               )}
         end
       end
     end

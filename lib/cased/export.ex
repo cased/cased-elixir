@@ -86,6 +86,7 @@ defmodule Cased.Export do
 
       %Cased.Request{
         client: client,
+        id: :export_create,
         method: :post,
         path: "/exports",
         key: key,
@@ -182,6 +183,7 @@ defmodule Cased.Export do
   def get(client, id, opts \\ []) do
     %Cased.Request{
       client: client,
+      id: :export,
       method: :get,
       path: "/exports/#{id}",
       key: opts[:key] || Map.fetch!(client.keys, :default)
@@ -221,6 +223,7 @@ defmodule Cased.Export do
   def get_download(client, id, opts \\ []) do
     %Cased.Request{
       client: client,
+      id: :export_download,
       method: :get,
       path: "/exports/#{id}/download",
       key: opts[:key] || Map.fetch!(client.keys, :default)
