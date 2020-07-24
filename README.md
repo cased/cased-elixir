@@ -187,7 +187,8 @@ You can also retrieve an event by ID and audit trail:
 
 ```elixir
 event =
-  Cased.Event.get(client, "event_...", audit_trail: :organizations)
+  client
+  |> Cased.Event.get("event_...", audit_trail: :organizations)
   |> Cased.Request.run!()
 ```
 
