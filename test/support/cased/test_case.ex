@@ -7,6 +7,9 @@ defmodule Cased.TestCase do
       @default_key "policy_test_FOO"
       @organizations_key "policy_test_BAR"
 
+      @environment_key "environment_live_FOO"
+      @bad_environment_key "environment_bad_FOO"
+
       @bad_key "policy_bad_FOO"
       @bad_key2 "publish_live_FOO"
       @bad_key3 "text "
@@ -17,7 +20,8 @@ defmodule Cased.TestCase do
             {:ok,
              client:
                Cased.Client.create!(
-                 keys: [default: @default_key, organizations: @organizations_key]
+                 keys: [default: @default_key, organizations: @organizations_key],
+                 environment_key: @environment_key
                )}
 
           settings ->
@@ -30,6 +34,7 @@ defmodule Cased.TestCase do
              client:
                Cased.Client.create!(
                  keys: [default: @default_key, organizations: @organizations_key],
+                 environment_key: @environment_key,
                  url: "http://localhost:#{bypass.port}"
                )}
         end

@@ -211,6 +211,16 @@ defmodule Cased.Request do
     end
   end
 
+  defp process({:request, %{id: :policies}}, response) do
+    case process(:json, response) do
+      {:ok, contents} ->
+        {:ok, Enum.map(Map.get(contents, "results", []), &Cased.Policy.from_json!/1)}
+
+      err ->
+        err
+    end
+  end
+
   ##
   # Stream
 

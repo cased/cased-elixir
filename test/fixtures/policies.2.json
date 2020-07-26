@@ -1,0 +1,40 @@
+{
+  "results": [
+    {
+      "id": "policy_1dQpXoEwVBmRizOgkgZ00NqpT0i",
+      "url": "https://api.cased.com/policies/policy_1dQpXoEwVBmRizOgkgZ00NqpT0i",
+      "name": "casedthree",
+      "description": "Audit trail policy for the cased audit trail in the live environment.",
+      "expired": false,
+      "api_key": "policy_live_1dQpY8bBgEwdpmdpVrrtDzMX4fH",
+      "updated_at": "2020-06-17T04:13:33.945950Z",
+      "created_at": "2020-06-17T04:13:33.945950Z",
+      "policy": {
+        "audit_trails": ["default"],
+        "description": "Audit trail policy for the bruce audit trail in the live environment.",
+        "export": true,
+        "name": "casedthree",
+        "pii": true
+      }
+    },
+    {
+      "id": "policy_1dQpXoEwVBmRizOgkgZ00NqpT0j",
+      "url": "https://api.cased.com/policies/policy_1dQpXoEwVBmRizOgkgZ00NqpT0j",
+      "name": "casedfour",
+      "description": "Audit trail policy for the cased audit trail in the live environment.",
+      "expired": false,
+      "api_key": "policy_live_1dQpY8bBgEwdpmdpVrrtDzMX4fH",
+      "updated_at": "2020-06-17T04:13:33.945950Z",
+      "created_at": "2020-06-17T04:13:33.945950Z",
+      "policy": {
+        "audit_trails": ["default"],
+        "description": "Audit trail policy for the bruce audit trail in the live environment.",
+        "export": true,
+        "name": "casedfour",
+        "pii": true
+      }
+    }
+  ],
+  "total_count": 6,
+  "total_pages": 3
+}

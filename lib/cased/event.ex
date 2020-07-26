@@ -129,12 +129,14 @@ defmodule Cased.Event do
       |> Keyword.merge(opts)
 
     with {:ok, options} <- validate_query_opts(opts, client) do
-      {audit_trail, query} = Map.pop(options, :audit_trail)
+      {options, query} =
+        options
+        |> Map.split([:audit_trail, :key])
 
       {id, path, key} =
-        if audit_trail do
-          {:audit_trail_events, "/audit-trails/#{audit_trail}/events",
-           Map.get_lazy(options, :key, fn -> Map.fetch!(client.keys, audit_trail) end)}
+        if Map.get(options, :audit_trail) do
+          {:audit_trail_events, "/audit-trails/#{options.audit_trail}/events",
+           Map.get_lazy(options, :key, fn -> Map.fetch!(client.keys, options.audit_trail) end)}
         else
           {:events, "/events", Map.get(options, :key, client.keys.default)}
         end

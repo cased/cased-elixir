@@ -2,6 +2,34 @@ defmodule Cased.RequestTest do
   use Cased.TestCase
 
   describe "run/2" do
+    @tag bypass: [fixture: "policies"]
+    test "returns policies when provided in the response", %{client: client} do
+      assert {:ok, policies} =
+               client
+               |> Cased.Policy.query()
+               |> Cased.Request.run()
+
+      assert 2 == length(policies)
+
+      first_policy = policies |> List.first()
+
+      assert [%Cased.AuditTrail{name: "default"}] = first_policy.audit_trails
+    end
+
+    @tag bypass: [fixture: "policies", paginated: true]
+    test "returns policies when provided in the response, requested page by page", %{
+      client: client
+    } do
+      for page <- 1..3 do
+        policies =
+          client
+          |> Cased.Policy.query(page: page, per_page: 2)
+          |> Cased.Request.run!()
+
+        assert 2 == length(policies)
+      end
+    end
+
     @tag bypass: [fixture: "events"]
     test "returns events when provided in the response", %{client: client} do
       assert {:ok, events} =
@@ -131,7 +159,7 @@ defmodule Cased.RequestTest do
 
   describe "stream/1" do
     @tag bypass: [fixture: "events", paginated: true]
-    test "returns paginated records", %{
+    test "returns paginated event records", %{
       client: client
     } do
       events =
@@ -141,6 +169,19 @@ defmodule Cased.RequestTest do
         |> Enum.take(3)
 
       assert 3 == length(events)
+    end
+
+    @tag bypass: [fixture: "policies", paginated: true]
+    test "returns paginated policy records", %{
+      client: client
+    } do
+      policies =
+        client
+        |> Cased.Policy.query()
+        |> Cased.Request.stream()
+        |> Enum.take(5)
+
+      assert 5 == length(policies)
     end
   end
 end

@@ -5,11 +5,13 @@ defmodule Cased.Client do
   import Norm
 
   defstruct keys: %{},
+            environment_key: nil,
             url: "https://api.cased.com",
             timeout: 15_000
 
   @type t :: %__MODULE__{
           keys: %{atom() => String.t()},
+          environment_key: nil | String.t(),
           url: String.t(),
           timeout: pos_integer() | :infinity
         }
@@ -22,6 +24,7 @@ defmodule Cased.Client do
   @type create_opt ::
           {:keys, keyword()}
           | {:key, String.t()}
+          | {:environment_key, String.t()}
           | {:url, String.t()}
           | {:timeout, pos_integer() | :infinity}
 
@@ -46,6 +49,15 @@ defmodule Cased.Client do
   ...>   ]
   ...> )
   ```
+
+  If you plan on using the API to interact with policies themselves, you need to provide an `:environment_key`, for example:
+
+  ```elixir
+  iex> {:ok, client} = Cased.Client.create(
+  ...>   key: "policy_live_...",
+  ...>   environment_key: "environment_live_..."
+  ...> )
+  )
 
   Clients can be configured using runtime environment variables, your application
   configuration, hardcoded values, or any combination you choose.
@@ -108,7 +120,7 @@ defmodule Cased.Client do
   """
   @spec create(opts :: create_opts()) :: {:ok, t()} | {:error, any()}
   def create(opts \\ []) do
-    simple_opts = Keyword.take(opts, [:url, :timeout])
+    simple_opts = Keyword.take(opts, [:environment_key, :url, :timeout])
 
     struct!(__MODULE__, simple_opts)
     |> Map.put(:keys, parse_keys(opts))
@@ -175,6 +187,8 @@ defmodule Cased.Client do
            spec(is_binary and (&Regex.match?(~r/\Apolicy_(live|test)_\S+\Z/, &1)))},
           min_count: 1
         ),
+      environment_key:
+        spec(is_nil or (is_binary and (&Regex.match?(~r/\Aenvironment_(live|test)_\S+\Z/, &1)))),
       timeout: spec(&(&1 == :infinity || (is_integer(&1) && &1 > 0))),
       url: spec(is_binary() and (&(!is_nil(URI.parse(&1).host))))
     })

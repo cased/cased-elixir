@@ -53,6 +53,16 @@ defmodule Cased.ClientTest do
       end
     end
 
+    test "returns a client with an environment key if provided" do
+      assert {:ok, %{environment_key: @environment_key}} =
+               Cased.Client.create(key: @default_key, environment_key: @environment_key)
+    end
+
+    test "returns an error for a bad environment key" do
+      assert {:error, %Cased.ConfigurationError{}} =
+               Cased.Client.create(key: @default_key, environment_key: @bad_environment_key)
+    end
+
     test "returns an error for a bad timeout" do
       for bad <- [-1, :forever] do
         assert {:error, %Cased.ConfigurationError{details: [%{path: [:timeout]}]}} =
