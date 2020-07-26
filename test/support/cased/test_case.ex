@@ -8,6 +8,7 @@ defmodule Cased.TestCase do
       @organizations_key "policy_test_BAR"
 
       @environment_key "environment_live_FOO"
+      @environment_key2 "environment_live_BAR"
       @bad_environment_key "environment_bad_FOO"
 
       @bad_key "policy_bad_FOO"

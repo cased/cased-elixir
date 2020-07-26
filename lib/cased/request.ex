@@ -221,6 +221,16 @@ defmodule Cased.Request do
     end
   end
 
+  defp process({:request, %{id: :policy}}, response) do
+    case process(:json, response) do
+      {:ok, raw_policy} ->
+        {:ok, Cased.Policy.from_json!(raw_policy)}
+
+      err ->
+        err
+    end
+  end
+
   ##
   # Stream
 

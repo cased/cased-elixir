@@ -30,6 +30,20 @@ defmodule Cased.RequestTest do
       end
     end
 
+    @policy_id "policy_1dQpXoEwVBmRizOgkgZ00NqpT0g"
+
+    @tag bypass: [fixture: "policy"]
+    test "returns a policy", %{
+      client: client
+    } do
+      result =
+        client
+        |> Cased.Policy.get(@policy_id)
+        |> Cased.Request.run!()
+
+      assert %Cased.Policy{id: @policy_id} = result
+    end
+
     @tag bypass: [fixture: "events"]
     test "returns events when provided in the response", %{client: client} do
       assert {:ok, events} =
