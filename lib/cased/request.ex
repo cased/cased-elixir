@@ -72,12 +72,18 @@ defmodule Cased.Request do
       |> Map.put(:query, Plug.Conn.Query.encode(request.query))
       |> to_string()
 
+    body =
+      if request.body do
+        Jason.encode!(request.body)
+      else
+        ""
+      end
+
     Mojito.request(
       request.method,
       url,
       Cased.Headers.create(request.key),
-      # TODO: Support POST body
-      "",
+      body,
       timeout: request.client.timeout
     )
     |> case do
@@ -221,7 +227,7 @@ defmodule Cased.Request do
     end
   end
 
-  defp process({:request, %{id: :policy}}, response) do
+  defp process({:request, %{id: id}}, response) when id in [:policy, :policy_create] do
     case process(:json, response) do
       {:ok, raw_policy} ->
         {:ok, Cased.Policy.from_json!(raw_policy)}

@@ -353,7 +353,7 @@ end
 
 For more information, see the `Cased.Sensitive.Handler` module.
 
-### Retrieving and modifying policy information
+### Retrieving and policy information
 
 To retrieve and modify policy information, you need to create your client with your Environment API Key.
 
@@ -365,12 +365,29 @@ For example:
 
 Use `Cased.Policy.query/1` and `Cased.Request.stream/1` in conjunction with one of the `Enum` functions to retrieve policies:
 
-````elixir
+```elixir
 first_3_policies =
   client
   |> Cased.Policy.query()
   |> Cased.Request.stream()
   |> Enum.take(3)
+```
+
+#### Modifying policy information
+
+You can create a policy using `Cased.Policy.create/2`. You must provide a `:name`, `:description`, and at least one other option (see `Cased.Policy.create/2` for details):
+
+```elixir
+policy =
+  client
+  |> Cased.Policy.create(
+    name: "limited",
+    description: "A limited time policy",
+    export: true,
+    pii: false,
+    window: [gte: begin_datetime, lte: end_datetime]
+  )
+  |> Cased.Request.run!()
 ```
 
 ### Console Usage
@@ -395,7 +412,7 @@ Cased.Context.merge(location: "hostname.local")
   user: "john"
 }
 |> Cased.publish()
-````
+```
 
 Any information stored using `Cased.Context` will be included any time an event is published.
 
