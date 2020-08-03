@@ -48,7 +48,18 @@ defmodule Cased.BypassTagHelper do
       Bypass.expect(bypass, fn conn ->
         %{"page" => page} = Plug.Conn.Query.decode(conn.query_string)
         fixture = File.read!("test/fixtures/#{settings.fixture}.#{page}.json")
-        Plug.Conn.resp(conn, status, fixture)
+
+        conn
+        |> Plug.Conn.put_resp_header(
+          "link",
+          [
+            ~s(<http://localhost:#{bypass.port}/#{settings.fixture}?page=1&per_page=25>; rel="first"),
+            ~s(<http://localhost:#{bypass.port}/#{settings.fixture}?page=3&per_page=25>; rel="last"),
+            ~s(<http://localhost:#{bypass.port}/#{settings.fixture}?page=#{page}&per_page=25>; rel="self")
+          ]
+          |> Enum.join(", ")
+        )
+        |> Plug.Conn.resp(status, fixture)
       end)
     else
       Bypass.expect(bypass, fn conn ->

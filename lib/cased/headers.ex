@@ -25,4 +25,32 @@ defmodule Cased.Headers do
 
     {"user-agent", "cased-elixir/v" <> List.to_string(vsn)}
   end
+
+  @type pagination_info ::
+          nil | %{first: non_neg_integer(), last: non_neg_integer(), self: non_neg_integer()}
+
+  @spec get_pagination_info(response :: Mojito.response()) :: pagination_info()
+  def get_pagination_info(response) do
+    response.headers
+    |> Mojito.Headers.get("link")
+    |> parse_pagination_info()
+  end
+
+  @link_pattern ~r/<.+?page=(\d+).*?>;\s+rel="(?<rel>\S+?)"/
+
+  @doc false
+  @spec parse_pagination_info(value :: nil | String.t()) :: pagination_info()
+  def parse_pagination_info(nil), do: nil
+
+  def parse_pagination_info(value) do
+    Regex.scan(@link_pattern, value)
+    |> Enum.map(fn
+      [_, page, rel] ->
+        {
+          String.to_existing_atom(rel),
+          String.to_integer(page)
+        }
+    end)
+    |> Map.new()
+  end
 end

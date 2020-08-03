@@ -27,7 +27,7 @@ defmodule Cased.Request do
   ##
   # Request processing
 
-  @type response_processing_strategy :: :raw | :decoded | :transformed
+  @type response_processing_strategy :: :raw | :decoded | :transformed | :full
   @type run_opts :: [run_opt()]
   @type run_opt :: {:response, response_processing_strategy()}
 
@@ -47,6 +47,7 @@ defmodule Cased.Request do
     - `:raw` — Return the raw response.
     - `:decoded` — Return the decoded body of the response.
     - `:transformed` — Return data after endpoint-specific transformation.
+    - `:full` — Return the raw response and the transformed data (for pagination purposes).
   """
   @spec run(request :: Cased.Request.t(), opts :: run_opts()) ::
           run_result()
@@ -132,7 +133,7 @@ defmodule Cased.Request do
     |> Map.new()
     |> conform(
       schema(%{
-        response: spec(&(&1 in ~w(raw decoded transformed)a))
+        response: spec(&(&1 in ~w(raw decoded transformed full)a))
       })
       |> selection()
     )
@@ -141,7 +142,7 @@ defmodule Cased.Request do
   ##
   # Response Processing
 
-  @type response_processor :: nil | :json | {:request, t()}
+  @type response_processor :: nil | :json | {:request, t()} | {:paginating, t()}
 
   # Find the response processor given a request and a selected processing strategy.
   @spec response_processor(
@@ -149,6 +150,7 @@ defmodule Cased.Request do
           strategy :: response_processing_strategy()
         ) :: response_processor()
   defp response_processor(request, :transformed), do: {:request, request}
+  defp response_processor(request, :full), do: {:paginating, request}
   defp response_processor(_request, :raw), do: nil
   defp response_processor(_request, :decoded), do: :json
 
@@ -164,6 +166,12 @@ defmodule Cased.Request do
 
       result ->
         result
+    end
+  end
+
+  defp process({:paginating, request}, response) do
+    with {:ok, results} <- process({:request, request}, response) do
+      {:ok, {results, response}}
     end
   end
 
@@ -259,9 +267,13 @@ defmodule Cased.Request do
   @spec stream(request :: Cased.Request.t(), opts :: run_opts()) :: Enumerable.t()
   def stream(request, opts \\ []) do
     request_fun = fn page ->
+      request =
+        request
+        |> put_in([Access.key!(:query), :page], page)
+
       opts =
         opts
-        |> Keyword.put(:page, page)
+        |> Keyword.put(:response, :full)
 
       run(request, opts)
     end
@@ -276,13 +288,29 @@ defmodule Cased.Request do
 
         {fun, page} ->
           case fun.(page) do
-            {:ok, []} ->
+            {:ok, {[], _resp}} ->
               {[], :quit}
 
-            {:ok, data} when is_list(data) ->
-              {data, {fun, page + 1}}
+            {:ok, {data, resp}} when is_list(data) ->
+              case Cased.Headers.get_pagination_info(resp) do
+                nil ->
+                  # There's no pagination info; quit for safety.
+                  {data, :quit}
 
-            {:ok, data} ->
+                %{last: last} when last > page ->
+                  # We're not at the last page yet; keep going.
+                  {data, {fun, page + 1}}
+
+                %{last: ^page} ->
+                  # We're at the last page; quit.
+                  {data, :quit}
+
+                %{last: last} when last < page ->
+                  # We're past the last page somehow; quit for safety.
+                  {data, :quit}
+              end
+
+            {:ok, {data, _resp}} ->
               {[data], :quit}
 
             {:error, err} ->
