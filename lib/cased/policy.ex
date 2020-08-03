@@ -154,8 +154,8 @@ defmodule Cased.Policy do
   @type window :: [window_constraint()]
   @type window_constraint :: {:gt | :gte | :lt | :lte, DateTime.t()}
 
-  @type create_opts :: [create_opt()]
-  @type create_opt ::
+  @type create_or_update_opts :: [create_or_update_opt()]
+  @type create_or_update_opt ::
           {:name, String.t()}
           | {:description, String.t()}
           | {:audit_trails, [String.t()]}
@@ -166,11 +166,11 @@ defmodule Cased.Policy do
           | {:expires, DateTime.t()}
           | {:key, nil | String.t()}
 
-  @default_create_opts [
+  @default_create_or_update_opts [
     key: nil
   ]
 
-  @require_one_create_opts [
+  @require_one_create_or_update_opts [
     :audit_trails,
     :fields,
     :window,
@@ -181,12 +181,10 @@ defmodule Cased.Policy do
 
   @spec create(
           client :: Cased.Client.t(),
-          opts :: create_opts()
+          opts :: create_or_update_opts()
         ) :: Cased.Request.t() | no_return()
 
-  @doc """
-  Build a request to create a policy.
-
+  @create_or_update_doc """
   ## Options
 
   Requires all of:
@@ -209,15 +207,21 @@ defmodule Cased.Policy do
 
   If `:key` is omitted, the client is expected to be configured with an environment key.
   """
+
+  @doc """
+  Build a request to create a policy.
+
+  #{@create_or_update_doc}
+  """
   def create(client, opts \\ []) do
     opts =
-      @default_create_opts
+      @default_create_or_update_opts
       |> Keyword.merge(opts)
 
-    with {:ok, options} <- validate_create_opts(opts, client) do
-      unless Enum.any?(@require_one_create_opts, &Map.has_key?(options, &1)) do
+    with {:ok, options} <- validate_create_or_update_opts(opts, client) do
+      unless Enum.any?(@require_one_create_or_update_opts, &Map.has_key?(options, &1)) do
         raise %Cased.RequestError{
-          details: "requires one of #{@require_one_create_opts |> inspect()}"
+          details: "requires one of #{@require_one_create_or_update_opts |> inspect()}"
         }
       end
 
@@ -246,14 +250,14 @@ defmodule Cased.Policy do
     end
   end
 
-  @spec validate_create_opts(opts :: keyword(), client :: Cased.Client.t()) ::
+  @spec validate_create_or_update_opts(opts :: keyword(), client :: Cased.Client.t()) ::
           {:ok, map()} | {:error, list()}
-  defp validate_create_opts(opts, client) do
-    conform(Map.new(opts), create_opts_schema(client))
+  defp validate_create_or_update_opts(opts, client) do
+    conform(Map.new(opts), create_or_update_opts_schema(client))
   end
 
-  @spec create_opts_schema(client :: Cased.Client.t()) :: struct()
-  defp create_opts_schema(client) do
+  @spec create_or_update_opts_schema(client :: Cased.Client.t()) :: struct()
+  defp create_or_update_opts_schema(client) do
     schema(%{
       audit_trails: coll_of(spec(is_atom() or is_binary()), min_count: 1),
       description: spec(is_binary()),
@@ -270,6 +274,56 @@ defmodule Cased.Policy do
       window: spec(is_list() and (&valid_window?/1))
     })
     |> selection([:name, :description, :key])
+  end
+
+  ##
+  # Update
+
+  @spec update(
+          client :: Cased.Client.t(),
+          policy_id :: String.t(),
+          opts :: create_or_update_opts()
+        ) :: Cased.Request.t() | no_return()
+  @doc """
+  Build a request to update a policy.
+
+  #{@create_or_update_doc}
+  """
+  def update(client, policy_id, opts \\ []) do
+    opts =
+      @default_create_or_update_opts
+      |> Keyword.merge(opts)
+
+    with {:ok, options} <- validate_create_or_update_opts(opts, client) do
+      unless Enum.any?(@require_one_create_or_update_opts, &Map.has_key?(options, &1)) do
+        raise %Cased.RequestError{
+          details: "requires one of #{@require_one_create_or_update_opts |> inspect()}"
+        }
+      end
+
+      {key, body} = Map.pop(options, :key)
+
+      body =
+        case body do
+          %{window: window} ->
+            %{body | window: Map.new(window)}
+
+          _ ->
+            body
+        end
+
+      %Cased.Request{
+        client: client,
+        id: :policy_update,
+        method: :put,
+        path: "/policies/#{policy_id}",
+        key: key || client.environment_key,
+        body: body
+      }
+    else
+      {:error, details} ->
+        raise %Cased.RequestError{details: details}
+    end
   end
 
   ##

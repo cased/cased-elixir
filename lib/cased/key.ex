@@ -7,7 +7,7 @@ defmodule Cased.Key do
   @spec pattern(
           prefix :: atom(),
           client :: Cased.Client.t()
-        ) :: Norm.Core.Spec.Or.t()
+        ) :: map()
   def pattern(:environment, client) do
     spec(
       (is_nil() and fn _ -> !!client.environment_key end) or

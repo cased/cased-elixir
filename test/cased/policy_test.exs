@@ -182,34 +182,175 @@ defmodule Cased.PolicyTest do
     end
 
     test "raises an exception when :window is given bad values", %{client: client} do
+      for bad_window <- generate_bad_windows() do
+        assert_raise Cased.RequestError, fn ->
+          Cased.Policy.create(client, [{:window, bad_window} | @base_create_opts])
+        end
+      end
+    end
+  end
+
+  describe "update/3" do
+    @base_update_opts [
+      name: "casedtest",
+      description: "A test policy"
+    ]
+    @policy_id "policy_STUB"
+
+    test "updates a request with an :audit_trails option", %{client: client} do
+      audit_trails = [:one, :two, :three]
+
+      assert %Cased.Request{
+               client: ^client,
+               id: :policy_update,
+               method: :put,
+               path: "/policies/#{@policy_id}",
+               key: @environment_key,
+               body: %{
+                 name: "casedtest",
+                 description: "A test policy",
+                 audit_trails: ^audit_trails
+               }
+             } =
+               Cased.Policy.update(
+                 client,
+                 @policy_id,
+                 [{:audit_trails, audit_trails} | @base_update_opts]
+               )
+    end
+
+    test "updates a request with a :fields option", %{client: client} do
+      fields = ~w(one two three)
+
+      assert %Cased.Request{
+               client: ^client,
+               id: :policy_update,
+               method: :put,
+               path: "/policies/#{@policy_id}",
+               key: @environment_key,
+               body: %{
+                 name: "casedtest",
+                 description: "A test policy",
+                 fields: ^fields
+               }
+             } =
+               Cased.Policy.update(
+                 client,
+                 @policy_id,
+                 [{:fields, fields} | @base_update_opts]
+               )
+    end
+
+    test "updates a request with a valid :window option", %{client: client} do
       date1 = make_datetime("2021-01-23T23:50:07Z")
       date2 = make_datetime("2021-02-23T23:50:07Z")
 
-      bad_windows = [
-        # Unidirectional; into the future
-        # |---|===>
-        [gt: date1, gte: date2],
-        [gt: date1, gt: date2],
-        [gte: date1, gte: date2],
-        # Unidirectional; into the past
-        # <===|----|
-        [lt: date1, lte: date2],
-        [lt: date1, lt: date2],
-        [lte: date1, lte: date2],
-        # Diverging; negative window; any time besides a datetime range
-        # <---|...|--->
-        [lt: date1, gt: date2],
-        # Diverging; negative window; any time besides a specific datetime
-        # <---|.|--->
-        [lt: date1, gt: date1],
-        # Diverging; any time
-        # <---|--->
-        [lte: date1, gte: date1]
-      ]
+      assert %Cased.Request{
+               client: ^client,
+               id: :policy_update,
+               method: :put,
+               path: "/policies/#{@policy_id}",
+               key: @environment_key,
+               body: %{
+                 name: "casedtest",
+                 description: "A test policy",
+                 window: %{
+                   gte: ^date1,
+                   lte: ^date2
+                 }
+               }
+             } =
+               Cased.Policy.update(
+                 client,
+                 @policy_id,
+                 [{:window, gte: date1, lte: date2} | @base_update_opts]
+               )
+    end
 
-      for bad_window <- bad_windows do
+    test "updates a request with a :pii option", %{client: client} do
+      assert %Cased.Request{
+               client: ^client,
+               id: :policy_update,
+               method: :put,
+               path: "/policies/#{@policy_id}",
+               key: @environment_key,
+               body: %{
+                 name: "casedtest",
+                 description: "A test policy",
+                 pii: false
+               }
+             } =
+               Cased.Policy.update(
+                 client,
+                 @policy_id,
+                 [{:pii, false} | @base_update_opts]
+               )
+    end
+
+    test "updates a request with an :export option", %{client: client} do
+      assert %Cased.Request{
+               client: ^client,
+               id: :policy_update,
+               method: :put,
+               path: "/policies/#{@policy_id}",
+               key: @environment_key,
+               body: %{
+                 name: "casedtest",
+                 description: "A test policy",
+                 export: false
+               }
+             } =
+               Cased.Policy.update(
+                 client,
+                 @policy_id,
+                 [{:export, false} | @base_update_opts]
+               )
+    end
+
+    test "updates a request with an :expires option", %{client: client} do
+      datetime = make_datetime("2021-01-23T23:50:07Z")
+
+      assert %Cased.Request{
+               client: ^client,
+               id: :policy_update,
+               method: :put,
+               path: "/policies/#{@policy_id}",
+               key: @environment_key,
+               body: %{
+                 name: "casedtest",
+                 description: "A test policy",
+                 expires: ^datetime
+               }
+             } =
+               Cased.Policy.update(
+                 client,
+                 @policy_id,
+                 [{:expires, datetime} | @base_update_opts]
+               )
+    end
+
+    test "raises an exception when enough options aren't given", %{client: client} do
+      assert_raise Cased.RequestError, fn ->
+        Cased.Policy.update(client, @policy_id, name: "casedtest", description: "description")
+      end
+    end
+
+    test "raises an exception when given no options", %{client: client} do
+      assert_raise Cased.RequestError, fn ->
+        Cased.Policy.update(client, @policy_id, [])
+      end
+    end
+
+    test "raises an exception when given a bad :expires option", %{client: client} do
+      assert_raise Cased.RequestError, fn ->
+        Cased.Policy.update(client, @policy_id, [{:expires, :bad_expires} | @base_update_opts])
+      end
+    end
+
+    test "raises an exception when :window is given bad values", %{client: client} do
+      for bad_window <- generate_bad_windows() do
         assert_raise Cased.RequestError, fn ->
-          Cased.Policy.create(client, [{:window, bad_window} | @base_create_opts])
+          Cased.Policy.update(client, @policy_id, [{:window, bad_window} | @base_update_opts])
         end
       end
     end
@@ -248,5 +389,32 @@ defmodule Cased.PolicyTest do
   defp make_datetime(input) do
     {:ok, datetime, 0} = DateTime.from_iso8601(input)
     datetime
+  end
+
+  defp generate_bad_windows() do
+    date1 = make_datetime("2021-01-23T23:50:07Z")
+    date2 = make_datetime("2021-02-23T23:50:07Z")
+
+    [
+      # Unidirectional; into the future
+      # |---|===>
+      [gt: date1, gte: date2],
+      [gt: date1, gt: date2],
+      [gte: date1, gte: date2],
+      # Unidirectional; into the past
+      # <===|----|
+      [lt: date1, lte: date2],
+      [lt: date1, lt: date2],
+      [lte: date1, lte: date2],
+      # Diverging; negative window; any time besides a datetime range
+      # <---|...|--->
+      [lt: date1, gt: date2],
+      # Diverging; negative window; any time besides a specific datetime
+      # <---|.|--->
+      [lt: date1, gt: date1],
+      # Diverging; any time
+      # <---|--->
+      [lte: date1, gte: date1]
+    ]
   end
 end

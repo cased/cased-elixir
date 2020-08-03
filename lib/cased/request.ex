@@ -17,7 +17,7 @@ defmodule Cased.Request do
   @type t :: %__MODULE__{
           client: Cased.Client.t(),
           id: atom(),
-          method: :get | :post,
+          method: :get | :post | :put,
           path: String.t(),
           key: String.t(),
           query: map(),
@@ -227,7 +227,8 @@ defmodule Cased.Request do
     end
   end
 
-  defp process({:request, %{id: id}}, response) when id in [:policy, :policy_create] do
+  defp process({:request, %{id: id}}, response)
+       when id in [:policy, :policy_create, :policy_update] do
     case process(:json, response) do
       {:ok, raw_policy} ->
         {:ok, Cased.Policy.from_json!(raw_policy)}

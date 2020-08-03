@@ -373,7 +373,7 @@ first_3_policies =
   |> Enum.take(3)
 ```
 
-#### Modifying policy information
+#### Creating policies
 
 You can create a policy using `Cased.Policy.create/2`. You must provide a `:name`, `:description`, and at least one other option (see `Cased.Policy.create/2` for details):
 
@@ -388,6 +388,16 @@ policy =
     window: [gte: begin_datetime, lte: end_datetime]
   )
   |> Cased.Request.run!()
+```
+
+#### Updating policies
+
+You can update a policy by ID using `Cased.Policy.update/3`:
+
+```elixir
+client
+|> Cased.Policy.update("THE-POLICY-ID", name: "unlimited", pii: true)
+|> Cased.Request.run!()
 ```
 
 ### Console Usage
