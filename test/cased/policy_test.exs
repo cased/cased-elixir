@@ -190,6 +190,24 @@ defmodule Cased.PolicyTest do
     end
   end
 
+  describe "delete/1" do
+    @policy_id "policy_STUB"
+
+    test "creates a request", %{client: client} do
+      assert %Cased.Request{
+               client: ^client,
+               id: :policy_delete,
+               method: :delete,
+               path: "/policies/#{@policy_id}",
+               key: @environment_key
+             } =
+               Cased.Policy.delete(
+                 client,
+                 @policy_id
+               )
+    end
+  end
+
   describe "update/3" do
     @base_update_opts [
       name: "casedtest",

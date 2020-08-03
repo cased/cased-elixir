@@ -327,6 +327,65 @@ defmodule Cased.Policy do
   end
 
   ##
+  # Delete
+
+  @type delete_opts :: [delete_opt()]
+
+  @type delete_opt :: {:key, String.t()}
+
+  @spec delete(
+          client :: Cased.Client.t(),
+          policy_id :: String.t(),
+          opts :: delete_opts()
+        ) :: Cased.Request.t() | no_return()
+
+  @default_delete_opts [
+    key: nil
+  ]
+  @doc """
+  Build a request to update a policy.
+
+  ## Options
+
+  May include:
+
+  - `:key` — A Cased environment key allowing access to policies.
+
+  If `:key` is omitted, the client is expected to be configured with an environment key.
+  """
+  def delete(client, policy_id, opts \\ []) do
+    opts =
+      @default_delete_opts
+      |> Keyword.merge(opts)
+
+    with {:ok, options} <- validate_delete_opts(opts, client) do
+      %Cased.Request{
+        client: client,
+        id: :policy_delete,
+        method: :delete,
+        path: "/policies/#{policy_id}",
+        key: options.key || client.environment_key
+      }
+    else
+      {:error, details} ->
+        raise %Cased.RequestError{details: details}
+    end
+  end
+
+  @spec validate_delete_opts(opts :: keyword(), client :: Cased.Client.t()) ::
+          {:ok, map()} | {:error, list()}
+  defp validate_delete_opts(opts, client) do
+    conform(Map.new(opts), delete_opts_schema(client))
+  end
+
+  @spec delete_opts_schema(client :: Cased.Client.t()) :: struct()
+  defp delete_opts_schema(client) do
+    schema(%{
+      key: Cased.Key.pattern(:environment, client)
+    })
+  end
+
+  ##
   # Window validation
 
   @window_comps ~w(gt gte lt lte)a

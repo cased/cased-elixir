@@ -13,7 +13,6 @@ A Cased client for Elixir applications in your organization to control and monit
   - [Retrieving events from multiple Cased Policies](#retrieving-events-from-multiple-cased-policies)
   - [Exporting events](#exporting-events)
   - [Masking & filtering sensitive information](#masking-and-filtering-sensitive-information)
-  - [Disable publishing events](#disable-publishing-events)
   - [Context](#context)
   - [Testing](#testing)
 - [Customizing cased-elixir](#customizing-cased-elixir)
@@ -90,14 +89,16 @@ examples below.
 Create a client with the policy key for your `:default` audit trail:
 
 ```elixir
-{:ok, client} = Cased.Client.create(key: "policy_live_...")
+iex> Cased.Client.create(key: "policy_live_...")
+{:ok, %Cased.Client{...}}
 ```
 
 <a name="keys-example"></a>
 Create a client key with policy keys for specific audit trails:
 
 ```elixir
-{:ok, client} = Cased.Client.create(keys: [default: "policy_live_...", users: "policy_live_..."])
+iex> Cased.Client.create(keys: [default: "policy_live_...", users: "policy_live_..."])
+{:ok, %Cased.Client{...}}
 ```
 
 Clients can be configured using runtime environment variables, your application
@@ -105,26 +106,32 @@ configuration, hardcoded values, or any combination you choose:
 
 ```elixir
 # Just using runtime environment variable:
-{:ok, client} = Cased.Client.create(key: System.fetch_env!("CASED_POLICY_KEY"))
+iex> Cased.Client.create(key: System.fetch_env!("CASED_POLICY_KEY"))
+{:ok, %Cased.Client{...}}
 
 # Just using application configuration:
-{:ok, client} = Cased.Client.create(key: Application.fetch_env!(:your_app, :cased_policy_key))
+iex> Cased.Client.create(key: Application.fetch_env!(:your_app, :cased_policy_key))
+{:ok, %Cased.Client{...}}
 
 # Either/or
-{:ok, client} = Cased.Client.create!(key: System.get_env("CASED_POLICY_KEY") || Application.fetch_env!(:your_app, :cased_policy_key))
+iex> Cased.Client.create(
+...>   key: System.get_env("CASED_POLICY_KEY") || Application.fetch_env!(:your_app, :cased_policy_key)
+...> )
+{:ok, %Cased.Client{...}}
 ```
 
 In the event your client is misconfigured, you'll get a `Cased.ConfigurationError` exception struct instead:
 
 ```elixir
-# Not providing required options:
-{:error, %Cased.ConfigurationError{}} = Cased.Client.create()
+iex> Cased.Client.create()
+{:error, %Cased.ConfigurationError{...}}
 ```
 
 You can also use `Cased.Client.create!/1` if you know you're passing the correct configuration options (otherwise it raises a `Cased.ConfigurationError` exception):
 
 ```elixir
-client = Cased.Client.create!(key: "policy_live_...")
+iex> Cased.Client.create!(key: "policy_live_...")
+%Cased.Client{...}
 ```
 
 To simplify using clients across your application, consider writing a centralized function to handle constructing them:
@@ -152,16 +159,16 @@ For reuse, consider caching your client structs in GenServer state, ETS, or anot
 Provided you've [configured](#for-publisher) the Cased publisher, use `Cased.publish/1`:
 
 ```elixir
-%{
-  action: "credit_card.charge",
-  amount: 2000,
-  currency: "usd",
-  source: "tok_amex",
-  description: "My First Test Charge (created for API docs)",
-  credit_card_id: "card_1dQpXqQwXxsQs9sohN9HrzRAV6y"
-}
-|> Cased.publish()
-
+iex> %{
+...>   action: "credit_card.charge",
+...>   amount: 2000,
+...>   currency: "usd",
+...>   source: "tok_amex",
+...>   description: "My First Test Charge (created for API docs)",
+...>   credit_card_id: "card_1dQpXqQwXxsQs9sohN9HrzRAV6y"
+...> }
+...> |> Cased.publish()
+:ok
 ```
 
 ### Retrieving events from a Cased Policy
@@ -169,27 +176,26 @@ Provided you've [configured](#for-publisher) the Cased publisher, use `Cased.pub
 If you plan on retrieving events from your audit trails you must use an Cased Policy token.
 
 ```elixir
-{:ok, client} = Cased.Client.create(key: "policy_live_1dQpY5JliYgHSkEntAbMVzuOROh")
+iex> {:ok, client} = Cased.Client.create(key: "policy_live_1dQpY5JliYgHSkEntAbMVzuOROh")
 
-events =
-  client
-  |> Cased.Event.query()
-  |> Cased.Request.stream()
+iex> events =
+...>  client
+...>  |> Cased.Event.query()
+...>  |> Cased.Request.stream()
 
-events
-|> Enum.take(10)
-|> Enum.each(fn event ->
-  IO.inspect(event)
-end)
+iex> events
+...> |> Enum.take(3)
+[%Cased.Event{...}, %Cased.Event{...}, %Cased.Event{...}]
 ```
 
 You can also retrieve an event by ID and audit trail:
 
 ```elixir
-event =
-  client
-  |> Cased.Event.get("event_...", audit_trail: :organizations)
-  |> Cased.Request.run!()
+iex> event =
+...>  client
+...>  |> Cased.Event.get("event_...", audit_trail: :organizations)
+...>  |> Cased.Request.run!()
+%Cased.Event{...}
 ```
 
 ### Retrieving events from a Cased Policy containing variables
@@ -199,24 +205,21 @@ Policy events query. One example of a Cased Policy is to have a single Cased
 Policy that you can use to query events for any user in your database without
 having to create a Cased Policy for each user.
 
-For example, printing the first 100 events in the default audit trail that
+For example, getting the first 3 events in the default audit trail that
 matches a specific user ID:
 
 ```elixir
-client = Cased.Client.create(key: "policy_live_1dQpY5JliYgHSkEntAbMVzuOROh")
+iex> client = Cased.Client.create!(key: "policy_live_...")
+%Cased.Client{...}
 
-variables = [user_id: "user_1dSHQSNtAH90KA8zGTooMnmMdiD"]
+iex> variables = [user_id: "user_..."]
 
-events =
-  client
-  |> Cased.Event.query(variables: variables)
-  |> Cased.Request.stream()
-
-events
-|> Enum.take(100)
-|> Enum.each(fn event ->
-  IO.inspect(event)
-end)
+iex> events =
+...>   client
+...>   |> Cased.Event.query(variables: variables)
+...>   |> Cased.Request.stream()
+...>   |> Enum.take(3)
+[%Cased.Event{...}, %Cased.Event{...}, %Cased.Event{...}]
 ```
 
 ### Retrieving events from multiple Cased Policies
@@ -224,36 +227,29 @@ end)
 To retrieve events from one or more Cased Policies you can configure multiple
 Cased Policy API keys and retrieve events for each one.
 
-For example, printing the first 100 events for the user and organization audit
+For example, getting the first 3 events for the user and organization audit
 trails:
 
 ```elixir
-client = Cased.Client.create(keys: [
-  users: "policy_live_1dQpY8bBgEwdpmdpVrrtDzMX4fH",
-  organizations: "policy_live_1dSHQRurWX8JMYMbkRdfzVoo62d"
-])
+iex> client = Cased.Client.create!(keys: [
+...>   users: "policy_live_1dQpY8bBgEwdpmdpVrrtDzMX4fH",
+...>   organizations: "policy_live_1dSHQRurWX8JMYMbkRdfzVoo62d"
+...> ])
+%Cased.Client{...}
 
-users_events =
-  client
-  |> Cased.Event.query(audit_trail: :users, variables: variables)
-  |> Cased.Request.stream()
+iex> users_events =
+...>   client
+...>   |> Cased.Event.query(audit_trail: :users, variables: variables)
+...>   |> Cased.Request.stream()
+...>   |> Enum.take(3)
+[%Cased.Event{...}, %Cased.Event{...}, %Cased.Event{...}]
 
-users_events
-|> Enum.take(100)
-|> Enum.each(fn event ->
-  IO.inspect(event)
-end)
-
-org_events =
-  client
-  |> Cased.Event.query(audit_trail: :organizations, variables: variables)
-  |> Cased.Request.stream()
-
-org_events
-|> Enum.take(100)
-|> Enum.each(fn event ->
-  IO.inspect(event)
-end)
+iex> org_events =
+...>   client
+...>   |> Cased.Event.query(audit_trail: :organizations, variables: variables)
+...>   |> Cased.Request.stream()
+...>   |> Enum.take(3)
+[%Cased.Event{...}, %Cased.Event{...}, %Cased.Event{...}]
 ```
 
 ### Exporting events
@@ -261,13 +257,11 @@ end)
 Exporting events from a Cased Policy allows you to provide users with exports of their own data or to respond to data requests.
 
 ```elixir
-export =
-  client
-  |> Cased.Export.create(audit_trails: [:organizations, :users], fields: ~w(action timestamp))
-  |> Cased.Request.run()
-
-export.download_url
-# => https://api.cased.com/exports/export_1dSHQSNtAH90KA8zGTooMnmMdiD/download?token=eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoidXNlcl8xZFFwWThiQmdFd2RwbWRwVnJydER6TVg0ZkgiLCJ
+iex> export =
+...>  client
+...>  |> Cased.Export.create(audit_trails: [:organizations, :users], fields: ~w(action timestamp))
+...>  |> Cased.Request.run()
+%Cased.Export{download_url: "https://api.cased.com/exports/export_...", ...}
 ```
 
 The following options are available:
@@ -287,7 +281,7 @@ The only required option is `:fields`.
 
 You can retrieve data about an export using `Cased.Export.get/2` (or `Cased.Export.get/3`):
 
-```
+```elixir
 iex> client
 ...> |> Cased.Export.get("export_...")
 ...> |> Cased.Request.run!
@@ -296,7 +290,7 @@ iex> client
 
 To download the JSON data for an export, use `Cased.Export.get_download/2` (or `Cased.Export.get_download/3`).
 
-```
+```elixir
 iex> client
 ...> |> Cased.Export.get_download("export_...")
 ...> |> Cased.Request.run!
@@ -314,23 +308,24 @@ If you are handling sensitive information on behalf of your users, you should co
 You can do this manually by using `Cased.Sensitive.String.new/2`:
 
 ```elixir
-%{
-  action: "credit_card.charge",
-  user: Cased.Sensitive.String.new("john@example.com", label: :email)
-}
-|> Cased.publish()
+iex> %{
+...>   action: "credit_card.charge",
+...>   user: Cased.Sensitive.String.new("john@example.com", label: :email)
+...> }
+...> |> Cased.publish()
+:ok
 ```
 
 You can also use handlers to find sensitive values for you automatically. Here's an example checking for usernames:
 
 ```elixir
-username_handler = {Cased.Sensitive.RegexHandler, :username, ~r<@\w+>}
-
-%{
-  action: "comment.create",
-  body: "@username, I'm not sure."
-}
-|> Cased.publish(handlers: [username_handler])
+iex> username_handler = {Cased.Sensitive.RegexHandler, :username, ~r<@\w+>}
+iex> %{
+...>   action: "comment.create",
+...>   body: "@username, I'm not sure."
+...> }
+...> |> Cased.publish(handlers: [username_handler])
+:ok
 ```
 
 If you're regularly using the same handlers, consider storing them in your application config and defining your own function to use them in your application:
@@ -360,17 +355,22 @@ To retrieve and modify policy information, you need to create your client with y
 For example:
 
 ```elixir
-{:ok, client} = Cased.Client.create(key: "policy_live_...", environment_key: "environment_live_...")
+iex> Cased.Client.create(
+...>   key: "policy_live_...",
+...>   environment_key: "environment_live_..."
+...> )
+{:ok, %Cased.Client{...}}
 ```
 
 Use `Cased.Policy.query/1` and `Cased.Request.stream/1` in conjunction with one of the `Enum` functions to retrieve policies:
 
 ```elixir
-first_3_policies =
-  client
-  |> Cased.Policy.query()
-  |> Cased.Request.stream()
-  |> Enum.take(3)
+iex> first_3_policies =
+...>  client
+...>  |> Cased.Policy.query()
+...>  |> Cased.Request.stream()
+...>  |> Enum.take(3)
+[%Cased.Policy{...}, %Cased.Policy{...}, %Cased.Policy{...}]
 ```
 
 #### Creating policies
@@ -378,16 +378,17 @@ first_3_policies =
 You can create a policy using `Cased.Policy.create/2`. You must provide a `:name`, `:description`, and at least one other option (see `Cased.Policy.create/2` for details):
 
 ```elixir
-policy =
-  client
-  |> Cased.Policy.create(
-    name: "limited",
-    description: "A limited time policy",
-    export: true,
-    pii: false,
-    window: [gte: begin_datetime, lte: end_datetime]
-  )
-  |> Cased.Request.run!()
+iex> policy =
+...>  client
+...>  |> Cased.Policy.create(
+...>    name: "limited",
+...>    description: "A limited time policy",
+...>    export: true,
+...>    pii: false,
+...>    window: [gte: begin_datetime, lte: end_datetime]
+...>  )
+...>  |> Cased.Request.run!()
+%Cased.Policy{...}
 ```
 
 #### Updating policies
@@ -395,18 +396,22 @@ policy =
 You can update a policy by ID using `Cased.Policy.update/3`:
 
 ```elixir
-client
-|> Cased.Policy.update("THE-POLICY-ID", name: "unlimited", pii: true)
-|> Cased.Request.run!()
+iex> client
+...> |> Cased.Policy.update("THE-POLICY-ID", name: "unlimited", pii: true)
+...> |> Cased.Request.run!()
+%Cased.Policy{...}
 ```
 
-### Console Usage
+#### Deleting Policies
 
-TK
+You can delete a policy by ID using `Cased.Policy.delete/2`:
 
-### Disable publishing events
-
-TK
+```elixir
+iex> client
+...> |> Cased.Policy.delete("THE-POLICY-ID")
+...> |> Cased.Request.run!()
+:ok
+```
 
 ### Context
 
@@ -415,13 +420,14 @@ One of the most easiest ways to publish detailed events to Cased is to push cont
 **Note that the Cased context is tied to the current process** (it's actually stored in the [process dictionary](https://hexdocs.pm/elixir/Process.html)). Different process, different context.
 
 ```elixir
-Cased.Context.merge(location: "hostname.local")
-
-%{
-  action: "console.start",
-  user: "john"
-}
-|> Cased.publish()
+iex> Cased.Context.merge(location: "hostname.local")
+:ok
+iex> %{
+...>   action: "console.start",
+...>   user: "john"
+...> }
+...> |> Cased.publish()
+:ok
 ```
 
 Any information stored using `Cased.Context` will be included any time an event is published.
@@ -439,21 +445,22 @@ Any information stored using `Cased.Context` will be included any time an event 
 You can provide `Cased.Context.merge/3` a function and the context will only be present for the duration of the function execution:
 
 ```elixir
-Cased.Context.merge(location: "hostname.local") do
-  # Will include { "location": "hostname.local" }
-  %{
-    action: "console.start",
-    user: "john"
-  }
-  |> Cased.publish()
-end
-
-# Will not include {"location": "hostname.local"}
-%{
-  action: "console.end",
-  user: "john"
-}
-|> Cased.publish()
+iex> Cased.Context.merge(location: "hostname.local") do
+...>   # Will include { "location": "hostname.local" }
+...>   %{
+...>     action: "console.start",
+...>     user: "john"
+...>   }
+...>   |> Cased.publish()
+...> end
+:ok
+iex> # Will not include {"location": "hostname.local"}
+iex> %{
+...>   action: "console.end",
+...>   user: "john"
+...> }
+...> |> Cased.publish()
+:ok
 ```
 
 (You can also use `Cased.Context.put/2` and `Cased.Context.put/3` for single-value additions to the context.)
@@ -461,7 +468,8 @@ end
 To reset the context, use `Cased.Context.reset/0`:
 
 ```elixir
-Cased.Context.reset()
+iex> Cased.Context.reset()
+:ok # or `nil` if no data was stored in the context
 ```
 
 See the `Cased.Context` module for more information.

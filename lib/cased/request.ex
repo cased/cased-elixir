@@ -17,7 +17,7 @@ defmodule Cased.Request do
   @type t :: %__MODULE__{
           client: Cased.Client.t(),
           id: atom(),
-          method: :get | :post | :put,
+          method: :get | :post | :put | :delete,
           path: String.t(),
           key: String.t(),
           query: map(),
@@ -31,7 +31,8 @@ defmodule Cased.Request do
   @type run_opts :: [run_opt()]
   @type run_opt :: {:response, response_processing_strategy()}
 
-  @type run_result :: {:ok, any()} | {:error, Cased.ResponseError.t() | Cased.RequestError.t()}
+  @type run_result ::
+          :ok | {:ok, any()} | {:error, Cased.ResponseError.t() | Cased.RequestError.t()}
 
   @default_run_opts [response: :transformed]
 
@@ -64,7 +65,7 @@ defmodule Cased.Request do
   end
 
   @spec do_run(request :: Cased.Request.t(), opts :: run_opts()) ::
-          {:ok, any()} | {:error, Cased.ResponseError.t() | Cased.RequestError.t()}
+          :ok | {:ok, any()} | {:error, Cased.ResponseError.t() | Cased.RequestError.t()}
   defp do_run(request, opts) do
     url =
       request.client.url
@@ -98,8 +99,8 @@ defmodule Cased.Request do
             {:error, %Cased.ResponseError{response: response}}
         end
 
-      err ->
-        err
+      other ->
+        other
     end
   end
 
@@ -115,6 +116,9 @@ defmodule Cased.Request do
     case run(request, opts) do
       {:ok, response} ->
         response
+
+      :ok ->
+        :ok
 
       {:error, err} ->
         raise %Cased.ResponseError{details: err}
@@ -238,10 +242,21 @@ defmodule Cased.Request do
     end
   end
 
+  defp process({:request, %{id: :policy_delete}}, response) do
+    case response do
+      %{status_code: 204} ->
+        :ok
+
+      %{status_code: unknown} ->
+        {:error,
+         %Cased.ResponseError{message: "unexpected status code #{unknown}", response: response}}
+    end
+  end
+
   ##
   # Stream
 
-  @spec stream(request :: Cased.Request.t(), opts :: run_opts()) :: any()
+  @spec stream(request :: Cased.Request.t(), opts :: run_opts()) :: Enumerable.t()
   def stream(request, opts \\ []) do
     request_fun = fn page ->
       opts =

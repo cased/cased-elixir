@@ -92,6 +92,32 @@ defmodule Cased.RequestTest do
     end
 
     ##
+    # DELETE /policies/{policy_id}
+
+    @policy_id "policy_STUB"
+
+    @tag bypass: [fixture: :empty, status: 204]
+    test "deletes a policy by ID", %{
+      client: client
+    } do
+      assert :ok ==
+               client
+               |> Cased.Policy.delete(@policy_id)
+               |> Cased.Request.run!()
+    end
+
+    @tag bypass: [fixture: :empty, status: 404]
+    test "deletes a policy with a bad ID", %{
+      client: client
+    } do
+      assert_raise Cased.ResponseError, fn ->
+        client
+        |> Cased.Policy.delete(@policy_id)
+        |> Cased.Request.run!()
+      end
+    end
+
+    ##
     # GET /events
 
     @tag bypass: [fixture: "events"]
