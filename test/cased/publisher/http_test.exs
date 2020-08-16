@@ -1,6 +1,7 @@
 defmodule Cased.Publisher.HTTPTest do
   use ExUnit.Case, async: true
   import ExUnit.CaptureLog
+  import Cased.TestHelper
 
   @key "publish_test_abcd"
 
@@ -47,7 +48,9 @@ defmodule Cased.Publisher.HTTPTest do
   end
 
   defp publish(publisher) do
-    assert :ok == GenServer.cast(publisher, {:publish, ~s({"data":"fake"})})
+    assert_publishes_cased_events(publisher, 1, fn ->
+      assert :ok == GenServer.cast(publisher, {:publish, ~s({"data":"fake"})})
+    end)
 
     # Waits for `Cased.Publisher.HTTP.handle_cast/2` to complete
     assert %{} = :sys.get_state(publisher)
