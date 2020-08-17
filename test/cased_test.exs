@@ -7,7 +7,7 @@ defmodule CasedTest do
 
       data = %{action: "test"}
 
-      data |> Cased.publish(publisher: publisher)
+      data |> Cased.publish(publishers: [publisher])
 
       encoded_data = Jason.encode!(data)
       assert_receive({:"$gen_cast", {:publish, ^encoded_data}}, 100)
@@ -20,13 +20,13 @@ defmodule CasedTest do
       Cased.Context.merge(context_addition)
 
       data = %{action: "test1"}
-      data |> Cased.publish(publisher: publisher)
+      data |> Cased.publish(publishers: [publisher])
 
       encoded_data = Jason.encode!(data |> Map.merge(context_addition))
       assert_receive({:"$gen_cast", {:publish, ^encoded_data}}, 100)
 
       data = %{action: "test2"}
-      data |> Cased.publish(publisher: publisher)
+      data |> Cased.publish(publishers: [publisher])
 
       encoded_data = Jason.encode!(data |> Map.merge(context_addition))
       assert_receive({:"$gen_cast", {:publish, ^encoded_data}}, 100)
@@ -40,7 +40,7 @@ defmodule CasedTest do
       context_addition = %{location: "https://example.com"}
 
       Cased.Context.merge(context_addition, fn ->
-        data |> Cased.publish(publisher: publisher)
+        data |> Cased.publish(publishers: [publisher])
       end)
 
       encoded_data = Jason.encode!(data |> Map.merge(context_addition))
@@ -54,7 +54,7 @@ defmodule CasedTest do
 
       data
       |> Cased.publish(
-        publisher: publisher,
+        publishers: [publisher],
         handlers: [{Cased.Sensitive.RegexHandler, :username, ~r/@\w+/}]
       )
 

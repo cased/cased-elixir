@@ -55,11 +55,11 @@ defmodule Cased do
   @type publish_opts :: [publish_opt()]
 
   @type publish_opt ::
-          {:publisher, GenServer.server()}
+          {:publishers, [GenServer.server()]}
           | {:handlers, [Cased.Sensitive.Handler.t() | Cased.Sensitive.Handler.spec()]}
 
   @default_publish_opts [
-    publisher: Cased.Publisher.HTTP,
+    publishers: [Cased.Publisher.HTTP],
     handlers: []
   ]
 
@@ -78,21 +78,25 @@ defmodule Cased do
       |> Map.merge(Cased.Context.to_map())
 
     case validate_publish_opts(opts) do
-      {:ok, %{publisher: publisher, handlers: handlers}} ->
+      {:ok, %{publishers: publishers, handlers: handlers}} ->
         Cased.Sensitive.Processor.process(audit_event, handlers: handlers)
-        |> do_publish(publisher)
+        |> do_publish(publishers)
 
       {:error, details} ->
         {:error, %ConfigurationError{details: details}}
     end
   end
 
-  @spec do_publish(data :: term(), publisher :: GenServer.server()) ::
+  @spec do_publish(data :: term(), publishers :: [GenServer.server()]) ::
           :ok | {:error, Jason.EncodeError.t() | Exception.t()}
-  defp do_publish(data, publisher) do
+  defp do_publish(data, publishers) do
     case Jason.encode(data) do
       {:ok, json} ->
-        GenServer.cast(publisher, {:publish, json})
+        for publisher <- publishers do
+          GenServer.cast(publisher, {:publish, json})
+        end
+
+        :ok
 
       other ->
         other
@@ -121,8 +125,8 @@ defmodule Cased do
 
   defp publish_opts_schema() do
     schema(%{
-      # Effectively GenServer.server()
-      publisher: spec(is_pid() or is_atom() or is_tuple()),
+      # Effectively [GenServer.server()]
+      publishers: coll_of(spec(is_pid() or is_atom() or is_tuple())),
       # TODO: Use is_struct() vs is_map(), post-Elixir v1.10
       handlers: coll_of(spec(is_tuple() or is_map()))
     })

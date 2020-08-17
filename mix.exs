@@ -4,7 +4,7 @@ defmodule Cased.MixProject do
   def project do
     [
       app: :cased,
-      version: "0.1.0-beta.1",
+      version: "0.1.0-beta.2",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -14,6 +14,7 @@ defmodule Cased.MixProject do
         logo: "priv/images/cased.png",
         extras: ["README.md"]
       ],
+      dialyzer: dialyzer(),
       elixirc_paths: elixirc_paths(Mix.env())
     ]
   end
@@ -38,6 +39,13 @@ defmodule Cased.MixProject do
       {:deep_merge, "~> 1.0.0"}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
+    ]
+  end
+
+  defp dialyzer() do
+    [
+      plt_add_apps: [:mix, :ex_unit],
+      check_plt: true
     ]
   end
 
