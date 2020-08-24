@@ -21,6 +21,18 @@ defmodule Cased.ClientTest do
       assert {:ok, %{url: "https://api.cased.com"}} = Cased.Client.create(key: @default_key)
     end
 
+    test "returns a client if only the environment key is set" do
+      assert {:ok, _} = Cased.Client.create(environment_key: @environment_key)
+    end
+
+    test "returns a client if an environment key and a policy key is provided" do
+      assert {:ok, _} =
+               Cased.Client.create(
+                 key: @default_key,
+                 environment_key: @environment_key
+               )
+    end
+
     test "returns a client with a custom url if provided" do
       url = "https://api.example.com"
       assert {:ok, %{url: ^url}} = Cased.Client.create(url: url, key: @default_key)

@@ -183,9 +183,7 @@ defmodule Cased.Client do
     schema(%{
       keys:
         coll_of(
-          {spec(is_atom),
-           spec(is_binary and (&Regex.match?(~r/\Apolicy_(live|test)_\S+\Z/, &1)))},
-          min_count: 1
+          {spec(is_atom), spec(is_binary and (&Regex.match?(~r/\Apolicy_(live|test)_\S+\Z/, &1)))}
         ),
       environment_key:
         spec(is_nil or (is_binary and (&Regex.match?(~r/\Aenvironment_(live|test)_\S+\Z/, &1)))),
