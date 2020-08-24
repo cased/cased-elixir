@@ -58,6 +58,19 @@ defmodule Cased.ContextTest do
 
       assert %{foo: 2, bar: 1} == Cased.Context.to_map()
     end
+
+    test "merges a keyword list of values into the context" do
+      Cased.Context.put(:foo, 1)
+      assert 1 == Cased.Context.stack_size()
+
+      Cased.Context.merge(foo: 2)
+      assert 2 == Cased.Context.stack_size()
+
+      Cased.Context.merge(bar: 1)
+      assert 3 == Cased.Context.stack_size()
+
+      assert %{foo: 2, bar: 1} == Cased.Context.to_map()
+    end
   end
 
   describe "merge/2" do

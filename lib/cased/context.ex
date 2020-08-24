@@ -92,7 +92,13 @@ defmodule Cased.Context do
   expect for, e.g., `Map.merge/2`, since we don't incur the cost of
   recalculating the full context when a value is added.
   """
-  @spec merge(data :: map()) :: :ok
+  @spec merge(data :: map() | Keyword.t()) :: :ok
+  def merge(data) when is_list(data) do
+    data
+    |> Map.new()
+    |> merge()
+  end
+
   def merge(data) when is_map(data) do
     [data | get_stack()]
     |> put_stack()
