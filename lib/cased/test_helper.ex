@@ -59,8 +59,10 @@ defmodule Cased.TestHelper do
           collected :: [map()]
         ) :: [map()]
   defp collect_events(publisher, collected \\ []) do
+    me = self()
+
     receive do
-      {:trace, ^publisher, :receive, {:"$gen_cast", {:publish, json}}} ->
+      {:trace, ^publisher, :receive, {:"$gen_call", {^me, _}, {:publish, json}}} ->
         event = Jason.decode!(json)
         collect_events(publisher, [event | collected])
 

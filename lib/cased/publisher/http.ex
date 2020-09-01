@@ -66,26 +66,29 @@ defmodule Cased.Publisher.HTTP do
   end
 
   @impl true
-  @spec handle_cast({:publish, json :: String.t()}, config()) :: {:noreply, config()}
-  def handle_cast({:publish, _json}, %{silence: true} = config) do
+  def handle_call({:publish, _json}, _from, %{silence: true} = config) do
     Logger.debug("Silenced Cased publish")
-    {:noreply, config}
+    {:reply, nil, config}
   end
 
-  def handle_cast({:publish, json}, config) do
-    case Mojito.post(config.url, config.headers, json, timeout: config.timeout) do
-      {:ok, response} ->
-        Logger.info(
-          "Received HTTP #{response.status_code} response from Cased with body: #{
-            inspect(response.body)
-          }"
-        )
+  def handle_call({:publish, json}, _from, config) do
+    Task.start(fn ->
+      result = Mojito.post(config.url, config.headers, json, timeout: config.timeout)
 
-      {:error, err} ->
-        Logger.warn("Error publishing to Cased: #{inspect(err)}")
-    end
+      case result do
+        {:ok, response} ->
+          Logger.info(
+            "Received HTTP #{response.status_code} response from Cased with body: #{
+              inspect(response.body)
+            }"
+          )
 
-    {:noreply, config}
+        {:error, err} ->
+          Logger.warn("Error publishing to Cased: #{inspect(err)}")
+      end
+    end)
+
+    {:reply, :ok, config}
   end
 
   ##

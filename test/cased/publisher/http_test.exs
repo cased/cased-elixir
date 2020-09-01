@@ -30,13 +30,17 @@ defmodule Cased.Publisher.HTTPTest do
       Plug.Conn.resp(conn, 200, ~s({"id":"test-response"}))
     end)
 
-    publish(publisher)
+    assert capture_log(fn ->
+             publish(publisher)
+             Process.sleep(500)
+           end) =~ "Received HTTP 200 response from Cased"
   end
 
   @tag silence: true
   test "handles publish with silence", %{publisher: publisher} do
     assert capture_log(fn ->
              publish(publisher)
+             Process.sleep(500)
            end) =~ "Silenced Cased publish"
   end
 
@@ -49,10 +53,9 @@ defmodule Cased.Publisher.HTTPTest do
 
   defp publish(publisher) do
     assert_publishes_cased_events(publisher, 1, fn ->
-      assert :ok == GenServer.cast(publisher, {:publish, ~s({"data":"fake"})})
+      assert GenServer.call(publisher, {:publish, ~s({"data":"fake"})}) in [:ok, nil]
     end)
 
-    # Waits for `Cased.Publisher.HTTP.handle_cast/2` to complete
-    assert %{} = :sys.get_state(publisher)
+    :sys.get_state(publisher)
   end
 end

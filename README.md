@@ -154,8 +154,6 @@ For reuse, consider caching your client structs in GenServer state, ETS, or anot
 
 ### Publishing events to Cased
 
-#### Manually
-
 Provided you've [configured](#for-publisher) the Cased publisher, use `Cased.publish/1`:
 
 ```elixir
@@ -170,6 +168,8 @@ iex> %{
 ...> |> Cased.publish()
 :ok
 ```
+
+:information_source: See the documentation for `Cased.publish/2` for more options.
 
 ### Retrieving events from a Cased Policy
 
@@ -442,7 +442,7 @@ Any information stored using `Cased.Context` will be included any time an event 
 }
 ```
 
-You can provide `Cased.Context.merge/3` a function and the context will only be present for the duration of the function execution:
+You can provide `Cased.Context.merge/2` a function and the context will only be present for the duration of the function execution:
 
 ```elixir
 iex> Cased.Context.merge(location: "hostname.local") do

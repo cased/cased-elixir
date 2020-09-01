@@ -8,8 +8,8 @@ defmodule Cased.TestHelperTest do
       {:ok, state}
     end
 
-    def handle_cast(_, state) do
-      {:noreply, state}
+    def handle_call(_, _from, state) do
+      {:reply, nil, state}
     end
   end
 
@@ -25,7 +25,7 @@ defmodule Cased.TestHelperTest do
   end
 
   describe "capture_cased_events/2" do
-    test "captures events sent via GenServer.cast/2", %{publisher: publisher} do
+    test "captures events sent via GenServer.call/2", %{publisher: publisher} do
       sent_events =
         Cased.TestHelper.capture_cased_events(publisher, fn -> publish_events(publisher) end)
 
@@ -34,7 +34,7 @@ defmodule Cased.TestHelperTest do
   end
 
   describe "assert_publishes_cased_events/3" do
-    test "counts events sent via GenServer.cast/2", %{publisher: publisher} do
+    test "counts events sent via GenServer.call/2", %{publisher: publisher} do
       Cased.TestHelper.assert_publishes_cased_events(publisher, length(@events), fn ->
         publish_events(publisher)
       end)
@@ -42,7 +42,7 @@ defmodule Cased.TestHelperTest do
   end
 
   describe "assert_publishes_cased_events/2" do
-    test "checks for any events sent via GenServer.cast/2", %{publisher: publisher} do
+    test "checks for any events sent via GenServer.call/2", %{publisher: publisher} do
       Cased.TestHelper.assert_publishes_cased_events(publisher, fn ->
         publish_events(publisher)
       end)
@@ -50,14 +50,14 @@ defmodule Cased.TestHelperTest do
   end
 
   describe "assert_publishes_no_cased_events/2" do
-    test "checks for any events sent via GenServer.cast/2", %{publisher: publisher} do
+    test "checks for any events sent via GenServer.call/2", %{publisher: publisher} do
       Cased.TestHelper.assert_publishes_no_cased_events(publisher, fn -> :noop end)
     end
   end
 
   defp publish_events(publisher) do
     for event <- @events do
-      GenServer.cast(publisher, {:publish, Jason.encode!(event)})
+      GenServer.call(publisher, {:publish, Jason.encode!(event)})
     end
   end
 end

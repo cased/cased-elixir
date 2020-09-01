@@ -52,19 +52,45 @@ defmodule Cased do
     end
   end
 
+  @default_publish_opts [
+    publishers: [Cased.Publisher.HTTP],
+    handlers: []
+  ]
+
+  @typedoc """
+  Options when publishing.
+
+  - `:publishers`, the list of publisher pids (defaults to `#{
+    inspect(@default_publish_opts[:publishers])
+  }`).
+  - `:handlers`, the list of sensitive data handlers (defaults to `#{
+    inspect(@default_publish_opts[:handlers])
+  }`);
+     see `Cased.Sensitive.Handler`.
+
+  """
   @type publish_opts :: [publish_opt()]
 
   @type publish_opt ::
           {:publishers, [GenServer.server()]}
           | {:handlers, [Cased.Sensitive.Handler.t() | Cased.Sensitive.Handler.spec()]}
 
-  @default_publish_opts [
-    publishers: [Cased.Publisher.HTTP],
-    handlers: []
-  ]
-
   @doc """
   Publish an audit event to Cased.
+
+  Note: Uses `GenServer.call/3` to send events to publisher processes.
+
+  ```
+  %{
+    action: "credit_card.charge",
+    amount: 2000,
+    currency: "usd",
+    source: "tok_amex",
+    description: "My First Test Charge (created for API docs)",
+    credit_card_id: "card_1dQpXqQwXxsQs9sohN9HrzRAV6y"
+  }
+  |> Cased.publish()
+  ```
   """
   @spec publish(audit_event :: map(), opts :: publish_opts()) ::
           :ok | {:error, Jason.EncodeError.t() | Exception.t()}
@@ -93,7 +119,7 @@ defmodule Cased do
     case Jason.encode(data) do
       {:ok, json} ->
         for publisher <- publishers do
-          GenServer.cast(publisher, {:publish, json})
+          GenServer.call(publisher, {:publish, json})
         end
 
         :ok
