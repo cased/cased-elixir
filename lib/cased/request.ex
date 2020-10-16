@@ -229,38 +229,6 @@ defmodule Cased.Request do
     end
   end
 
-  defp process({:request, %{id: :policies}}, response) do
-    case process(:json, response) do
-      {:ok, contents} ->
-        {:ok, Enum.map(Map.get(contents, "results", []), &Cased.Policy.from_json!/1)}
-
-      err ->
-        err
-    end
-  end
-
-  defp process({:request, %{id: id}}, response)
-       when id in [:policy, :policy_create, :policy_update] do
-    case process(:json, response) do
-      {:ok, raw_policy} ->
-        {:ok, Cased.Policy.from_json!(raw_policy)}
-
-      err ->
-        err
-    end
-  end
-
-  defp process({:request, %{id: :policy_delete}}, response) do
-    case response do
-      %{status_code: 204} ->
-        :ok
-
-      %{status_code: unknown} ->
-        {:error,
-         %Cased.ResponseError{message: "unexpected status code #{unknown}", response: response}}
-    end
-  end
-
   ##
   # Stream
 
