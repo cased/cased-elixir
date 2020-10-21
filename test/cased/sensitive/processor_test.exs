@@ -83,7 +83,7 @@ defmodule Cased.Sensitive.ProcessorTest do
         owner: "foo@example.com",
         ".cased": %{
           pii: %{
-            owner: [
+            ".owner" => [
               %Cased.Sensitive.Range{
                 key: :owner,
                 label: :email,
@@ -106,7 +106,7 @@ defmodule Cased.Sensitive.ProcessorTest do
         )
 
       expected_result = %{
-        owner: [
+        ".owner" => [
           %Cased.Sensitive.Range{
             key: :owner,
             label: :email,
@@ -132,7 +132,7 @@ defmodule Cased.Sensitive.ProcessorTest do
         )
 
       expected_result = %{
-        body: [
+        ".body" => [
           %Cased.Sensitive.Range{
             key: :body,
             label: :username,
@@ -168,7 +168,7 @@ defmodule Cased.Sensitive.ProcessorTest do
 
       expected_result =
         %{
-          action: [
+          ".action" => [
             %{
               label: :username,
               begin: 6,
@@ -191,7 +191,7 @@ defmodule Cased.Sensitive.ProcessorTest do
         body: "Hello 111-222-3333",
         ".cased": %{
           pii: %{
-            body: [
+            ".body" => [
               %Cased.Sensitive.Range{
                 key: :body,
                 label: :phone_number,
@@ -228,7 +228,7 @@ defmodule Cased.Sensitive.ProcessorTest do
           body: "Hello 111-222-3333",
           ".cased": %{
             pii: %{
-              body: [
+              ".body" => [
                 %{
                   label: :phone_number,
                   begin: 6,
@@ -241,6 +241,243 @@ defmodule Cased.Sensitive.ProcessorTest do
         |> Jason.encode!()
 
       assert expected_result == Jason.encode!(result)
+    end
+
+    test "result serializes with simple embedded, nested PII with lists" do
+      input = %{
+        users: [
+          Cased.Sensitive.String.new("dewski1", label: :username),
+          Cased.Sensitive.String.new("dewski2", label: :username)
+        ]
+      }
+
+      result = Cased.Sensitive.Processor.process(input)
+
+      expected_result =
+        %{
+          "users" => ["dewski1", "dewski2"],
+          ".cased" => %{
+            "pii" => %{
+              ".users[0]" => [
+                %{
+                  "begin" => 0,
+                  "end" => 7,
+                  "label" => "username"
+                }
+              ],
+              ".users[1]" => [
+                %{
+                  "begin" => 0,
+                  "end" => 7,
+                  "label" => "username"
+                }
+              ]
+            }
+          }
+        }
+        |> Jason.encode!()
+
+      assert expected_result == Jason.encode!(result)
+    end
+
+    test "result serializes with simple embedded, nested PII with maps" do
+      input = %{
+        users: %{
+          one: Cased.Sensitive.String.new("dewski1", label: :username),
+          two: Cased.Sensitive.String.new("dewski2", label: :username)
+        }
+      }
+
+      result = Cased.Sensitive.Processor.process(input)
+
+      expected_result =
+        %{
+          "users" => %{
+            "one" => "dewski1",
+            "two" => "dewski2"
+          },
+          ".cased" => %{
+            "pii" => %{
+              ".users.one" => [
+                %{
+                  "begin" => 0,
+                  "end" => 7,
+                  "label" => "username"
+                }
+              ],
+              ".users.two" => [
+                %{
+                  "begin" => 0,
+                  "end" => 7,
+                  "label" => "username"
+                }
+              ]
+            }
+          }
+        }
+        |> Jason.encode!()
+
+      assert expected_result == Jason.encode!(result)
+    end
+
+    test "result serializes with embedded, nested PII" do
+      input = %{
+        user: Cased.Sensitive.String.new("dewski", label: :username),
+        issue: %{
+          title: Cased.Sensitive.String.new("Test", label: :title),
+          "key.with.dot": Cased.Sensitive.String.new("true", label: :boolean),
+          comments: [
+            %{
+              author: Cased.Sensitive.String.new("dewski", label: :username)
+            },
+            %{
+              author: Cased.Sensitive.String.new("tnm", label: :username)
+            },
+            Cased.Sensitive.String.new("element", label: :string),
+            [
+              Cased.Sensitive.String.new("hello", label: :string)
+            ]
+          ]
+        }
+      }
+
+      result = Cased.Sensitive.Processor.process(input)
+
+      expected_result =
+        %{
+          ".cased" => %{
+            "pii" => %{
+              ".user" => [
+                %{
+                  "begin" => 0,
+                  "end" => 6,
+                  "label" => "username"
+                }
+              ],
+              ".issue.title" => [
+                %{
+                  "begin" => 0,
+                  "end" => 4,
+                  "label" => "title"
+                }
+              ],
+              ~s(.issue."key.with.dot") => [
+                %{
+                  "begin" => 0,
+                  "end" => 4,
+                  "label" => "boolean"
+                }
+              ],
+              ".issue.comments[0].author" => [
+                %{
+                  "begin" => 0,
+                  "end" => 6,
+                  "label" => "username"
+                }
+              ],
+              ".issue.comments[1].author" => [
+                %{
+                  "begin" => 0,
+                  "end" => 3,
+                  "label" => "username"
+                }
+              ],
+              ".issue.comments[2]" => [
+                %{
+                  "begin" => 0,
+                  "end" => 7,
+                  "label" => "string"
+                }
+              ],
+              ".issue.comments[3][0]" => [
+                %{
+                  "begin" => 0,
+                  "end" => 5,
+                  "label" => "string"
+                }
+              ]
+            }
+          },
+          "user" => "dewski",
+          "issue" => %{
+            "title" => "Test",
+            "key.with.dot" => "true",
+            "comments" => [
+              %{
+                "author" => "dewski"
+              },
+              %{
+                "author" => "tnm"
+              },
+              "element",
+              [
+                "hello"
+              ]
+            ]
+          }
+        }
+        |> Jason.encode!()
+
+      assert expected_result == Jason.encode!(result)
+    end
+
+    test "result serializes with embedded, nested PII using handlers", %{
+      phone_number_handler: handler
+    } do
+      result =
+        Cased.Sensitive.Processor.process(
+          %{
+            business: %{
+              name: "Example",
+              phone: "111-222-3333"
+            }
+          },
+          handlers: [handler]
+        )
+
+      expected_result =
+        %{
+          "business" => %{
+            "name" => "Example",
+            "phone" => "111-222-3333"
+          },
+          ".cased": %{
+            pii: %{
+              ".business.phone" => [
+                %{
+                  label: :phone_number,
+                  begin: 0,
+                  end: 12
+                }
+              ]
+            }
+          }
+        }
+        |> Jason.encode!()
+
+      assert expected_result == Jason.encode!(result)
+    end
+  end
+
+  describe "build_path/1" do
+    test "for a simple address" do
+      assert ".body" == Cased.Sensitive.Processor.build_path(["body"])
+    end
+
+    test "for a nested address" do
+      assert ".body.name" == Cased.Sensitive.Processor.build_path(["name", "body"])
+    end
+
+    test "for a nested address, with a dotted name" do
+      assert ~s(.body."has.dot") == Cased.Sensitive.Processor.build_path(["has.dot", "body"])
+    end
+
+    test "for a nested address with list notation" do
+      assert ".body[2].name" == Cased.Sensitive.Processor.build_path(["name", 2, "body"])
+    end
+
+    test "for a nested address with multiple list notations" do
+      assert ".body[3][2].name" == Cased.Sensitive.Processor.build_path(["name", 2, 3, "body"])
     end
   end
 end

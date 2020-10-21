@@ -14,6 +14,8 @@ defmodule Cased.Sensitive.Processor do
           {:return, :embedded | :pii}
           | {:handlers, [Cased.Sensitive.Handler.spec()]}
 
+  @type address :: [String.t() | non_neg_integer()]
+
   @doc """
   Process an audit event, collecting any sensitive data found.
 
@@ -29,7 +31,7 @@ defmodule Cased.Sensitive.Processor do
   %{
     ".cased": %{
       pii: %{
-        body: [
+        ".body" => [
           %Cased.Sensitive.Range{
             begin_offset: 4,
             end_offset: 13,
@@ -52,7 +54,7 @@ defmodule Cased.Sensitive.Processor do
   iex>   {Cased.Sensitive.RegexHandler, :username, ~r/@\\w+/}
   iex> ], return: :pii)
   %{
-    body: [
+    ".body" => [
       %Cased.Sensitive.Range{
         begin_offset: 4,
         end_offset: 13,
@@ -104,23 +106,24 @@ defmodule Cased.Sensitive.Processor do
           node :: any(),
           audit_event :: map(),
           handlers :: [Cased.Sensitive.Handler.t()]
-        ) :: {processed_node :: map(), node_pii :: map()}
+        ) :: {processed_node :: map(), pii :: map()}
   defp collect_from_node(node, audit_event, handlers) do
     node
-    |> Enum.reduce({%{}, %{}}, &do_collect_from_node(&1, &2, audit_event, handlers))
+    |> Enum.reduce({%{}, %{}, []}, &do_collect_from_node(&1, &2, audit_event, handlers))
+    |> Tuple.delete_at(2)
   end
 
   @spec do_collect_from_node(
-          {key :: String.t() | atom(), value :: any()},
-          acc :: {processed_node :: map(), node_pii :: map()},
+          {key :: any(), value :: any()},
+          acc :: {results :: map(), pii :: map(), parent_address :: address()},
           audit_event :: map(),
           handlers :: [Cased.Sensitive.Handler.t()]
-        ) :: {processed_node :: map(), node_pii :: map()}
+        ) :: {results :: map(), pii :: map(), address :: address()}
 
   # Value is manually marked as sensitive; split data and ranges
   defp do_collect_from_node(
          {key, %Cased.Sensitive.String{} = value},
-         {processed_node, node_pii} = _acc,
+         {processed_node, pii, parent_address} = _acc,
          _audit_event,
          _handlers
        ) do
@@ -128,36 +131,147 @@ defmodule Cased.Sensitive.Processor do
       value
       |> Cased.Sensitive.String.to_range(key)
 
+    address = [key | parent_address]
+
     {
       Map.put(processed_node, key, value.data),
-      Map.put(node_pii, key, [range])
+      Map.put(pii, build_path(address), [range]),
+      parent_address
     }
   end
 
-  # Value is a string; extract ranges
+  # Value is another type of struct; just store the value
   defp do_collect_from_node(
          {key, value},
-         {processed_node, node_pii} = _acc,
+         {results, pii, parent_address} = _acc,
+         _audit_event,
+         _handlers
+       )
+       when is_struct(value) do
+    {
+      Map.put(results, key, value),
+      pii,
+      parent_address
+    }
+  end
+
+  # Value is a list; recurse
+  defp do_collect_from_node(
+         {key, values},
+         {results, pii, parent_address} = _acc,
+         audit_event,
+         handlers
+       )
+       when is_list(values) do
+    address = [key | parent_address]
+
+    acc = {_result = [], pii}
+
+    {result, pii} =
+      values
+      |> Enum.with_index()
+      |> Enum.reduce(
+        acc,
+        &collect_from_list_element(&1, &2, address, audit_event, handlers)
+      )
+
+    {
+      Map.put(results, key, result |> Enum.reverse()),
+      pii,
+      parent_address
+    }
+  end
+
+  # Value is a map; recurse
+  defp do_collect_from_node(
+         {key, values},
+         {results, pii, parent_address} = _acc,
+         audit_event,
+         handlers
+       )
+       when is_map(values) do
+    address = [key | parent_address]
+
+    acc = {_result = %{}, pii}
+
+    {result, pii} =
+      values
+      |> Enum.reduce(
+        acc,
+        &collect_from_map_pair(&1, &2, address, audit_event, handlers)
+      )
+
+    {
+      Map.put(results, key, result),
+      pii,
+      parent_address
+    }
+  end
+
+  # Value is a scalar; extract ranges
+  defp do_collect_from_node(
+         {key, value},
+         {results, pii, parent_address} = _acc,
          audit_event,
          handlers
        ) do
+    address = [key | parent_address]
+
     case ranges(handlers, audit_event, key, value) do
       [] ->
         {
-          Map.put(processed_node, key, value),
-          node_pii
+          Map.put(results, key, value),
+          pii,
+          parent_address
         }
 
       key_pii ->
         {
-          Map.put(processed_node, key, value),
-          Map.put(node_pii, key, key_pii)
+          Map.put(results, key, value),
+          Map.put(pii, build_path(address), key_pii),
+          parent_address
         }
     end
   end
 
-  # Value is something else; skip
-  defp do_collect_from_node(_other, acc, _audit_event, _handlers), do: acc
+  @spec collect_from_map_pair(
+          {key :: any(), value :: any()},
+          acc :: {results :: map(), pii :: map()},
+          parent_address :: address(),
+          audit_event :: map(),
+          handlers :: [Cased.Sensitive.Handler.t()]
+        ) :: {results :: map(), pii :: map()}
+  defp collect_from_map_pair(pair, {results, pii}, parent_address, audit_event, handlers) do
+    do_collect_from_node(pair, {results, pii, parent_address}, audit_event, handlers)
+    |> Tuple.delete_at(2)
+  end
+
+  @spec collect_from_list_element(
+          {value :: any(), offset :: non_neg_integer()},
+          acc :: {results :: map(), pii :: map()},
+          parent_address :: address(),
+          audit_event :: map(),
+          handlers :: [Cased.Sensitive.Handler.t()]
+        ) :: {results :: list(), pii :: map()}
+  defp collect_from_list_element(
+         {value, offset},
+         {results, pii},
+         parent_address,
+         audit_event,
+         handlers
+       ) do
+    {collected_result, pii, _} =
+      do_collect_from_node(
+        {offset, value},
+        {%{}, pii, parent_address},
+        audit_event,
+        handlers
+      )
+
+    result = collected_result[offset]
+
+    {[result | results], pii}
+  end
 
   # Extract the sensitive value ranges from a value, using handlers
   @spec ranges(
@@ -171,5 +285,30 @@ defmodule Cased.Sensitive.Processor do
     |> Enum.flat_map(fn %module{} = handler ->
       module.ranges(handler, audit_event, {key, value})
     end)
+  end
+
+  @doc false
+  @spec build_path(address :: address()) :: String.t()
+  def build_path(address) do
+    address
+    |> Enum.reverse()
+    |> Enum.map(fn
+      value when is_integer(value) ->
+        "[#{value}]"
+
+      value ->
+        # Normalize atoms
+        value = to_string(value)
+
+        key =
+          if String.contains?(value, ".") do
+            ~s("#{value}")
+          else
+            value
+          end
+
+        ".#{key}"
+    end)
+    |> Enum.join("")
   end
 end

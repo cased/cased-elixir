@@ -65,7 +65,7 @@ defmodule CasedTest do
       pii_data = %{
         ".cased" => %{
           pii: %{
-            greeting: [
+            ".greeting" => [
               %{
                 begin: 3,
                 end: 12,

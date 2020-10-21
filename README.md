@@ -15,7 +15,8 @@ A Cased client for Elixir applications in your organization to control and monit
   - [Masking & filtering sensitive information](#masking-and-filtering-sensitive-information)
   - [Context](#context)
   - [Testing](#testing)
-- [Customizing cased-elixir](#customizing-cased-elixir)
+- [Contribution Guidelines](#contributing)
+
 
 ## Installation
 
@@ -476,11 +477,7 @@ See the `Cased.Context` module for more information.
 
 ### Testing
 
-TK
-
-## Customizing cased-elixir
-
-TK
+See `Cased.TestHelper`.
 
 ## Contributing
 

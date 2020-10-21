@@ -118,9 +118,6 @@ defmodule Cased.Request do
       {:ok, response} ->
         response
 
-      :ok ->
-        :ok
-
       {:error, err} ->
         raise %Cased.ResponseError{details: err}
     end

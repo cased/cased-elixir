@@ -4,8 +4,8 @@ defmodule Cased.MixProject do
   def project do
     [
       app: :cased,
-      version: "0.1.0-rc.0",
-      elixir: "~> 1.9",
+      version: "0.1.0",
+      elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       package: package(),
@@ -32,7 +32,7 @@ defmodule Cased.MixProject do
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
       {:mojito, "~> 0.7.3"},
       {:jason, "~> 1.2.1"},
-      {:bypass, "~> 1.0", only: :test},
+      {:bypass, "~> 2.0", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:norm, "~> 0.12"},
       {:plug, "~> 1.10.3"},
