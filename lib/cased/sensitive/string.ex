@@ -15,7 +15,7 @@ defmodule Cased.Sensitive.String do
         }
 
   @type new_opts :: [new_opt()]
-  @type new_opt :: {:label, String.t()}
+  @type new_opt :: {:label, String.t() | atom()}
 
   @doc """
   Create a new `Cased.Sensitive.String` struct.
