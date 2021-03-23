@@ -58,8 +58,8 @@ defmodule Cased.CLI.Session do
     GenServer.cast(__MODULE__, {:create, console_pid, attrs})
   end
 
-  def record() do
-    :ok
+  def upload_record(data) do
+    GenServer.call(__MODULE__, {:save_record, data})
   end
 
   ## Server callback
@@ -70,6 +70,12 @@ defmodule Cased.CLI.Session do
 
   @impl true
   def handle_call(:get, _from, state) do
+    {:reply, state, state}
+  end
+
+  @impl true
+  def handle_call({:save_record, data}, _from, state) do
+    do_put_record(state, Cased.CLI.Identity.get(), data)
     {:reply, state, state}
   end
 
@@ -106,6 +112,11 @@ defmodule Cased.CLI.Session do
         end
 
         send(console_pid, {:session, new_state, counter})
+        {:noreply, new_state}
+
+      {:error, %{"id" => _} = session} ->
+        new_state = State.from_session(state, session)
+        send(console_pid, {:error, new_state, 0})
         {:noreply, new_state}
 
       {:error, error} ->
@@ -150,6 +161,19 @@ defmodule Cased.CLI.Session do
       {_, %{body: body}} ->
         {:error, body}
     end
+  end
+
+  def do_put_record(
+        %{api_record_url: url} = _session,
+        %{api_key: key, user: %{"id" => user_token}} = _identify,
+        asciicast_data
+      ) do
+    Mojito.put(
+      url <> "?user_token=#{user_token}",
+      build_headers(key),
+      Jason.encode!(%{recording: asciicast_data}),
+      timeout: @request_timeout
+    )
   end
 
   defp build_headers(key) do

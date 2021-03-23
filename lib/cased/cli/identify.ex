@@ -24,8 +24,8 @@ defmodule Cased.CLI.Identity do
     end
   end
 
-  def identify do
-    GenServer.call(__MODULE__, :identify)
+  def identify(console_pid) do
+    GenServer.cast(__MODULE__, {:identify, console_pid})
   end
 
   def get do
@@ -48,15 +48,23 @@ defmodule Cased.CLI.Identity do
   end
 
   @impl true
-  def handle_call(:identify, {console_pid, _ref}, state) do
+  def handle_cast({:identify, console_pid}, %{id: id} = state) when not is_nil(id) do
+    send(console_pid, :identify_done)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:identify, console_pid}, state) do
     case do_identify(state.api_key) do
       {:ok, %{"url" => url, "code" => code, "api_url" => api_url}} ->
         new_state = %{state | url: url, code: code, api_url: api_url}
+        send(console_pid, {:identify_init, url})
         Process.send_after(self(), {:check, console_pid, 0}, @poll_timer)
-        {:reply, {:ok, new_state}, new_state}
+        {:noreply, new_state}
 
       error ->
-        {:reply, {:error, error}, state}
+        send(console_pid, {:error, error})
+        {:noreply, state}
     end
   end
 
