@@ -12,7 +12,8 @@ defmodule Cased.CLI.Identity do
               code: nil,
               url: nil,
               id: nil,
-              user: nil
+              user: nil,
+              ip_address: nil
   end
 
   ## Client API
@@ -32,6 +33,10 @@ defmodule Cased.CLI.Identity do
     GenServer.call(__MODULE__, :get)
   end
 
+  def reset do
+    GenServer.call(__MODULE__, :reset)
+  end
+
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
@@ -44,6 +49,12 @@ defmodule Cased.CLI.Identity do
 
   @impl true
   def handle_call(:get, _from, state) do
+    new_state = State.__struct__(Map.take(state, [:api_key]))
+    {:reply, new_state, new_state}
+  end
+
+  @impl true
+  def handle_call(:reset, _from, state) do
     {:reply, state, state}
   end
 
@@ -72,9 +83,9 @@ defmodule Cased.CLI.Identity do
   def handle_info({:check, console_pid, count}, state) do
     new_state =
       case do_check(state) do
-        {:ok, %{"id" => id, "user" => user}} ->
+        {:ok, %{"id" => id, "user" => user, "ip_address" => ip_address}} ->
           send(console_pid, :identify_done)
-          %{state | id: id, user: user}
+          %{state | id: id, user: user, ip_address: ip_address}
 
         _error ->
           Process.send_after(self(), {:check, console_pid, count + 1}, @poll_timer)

@@ -144,6 +144,23 @@ defmodule Cased.CLI.Session do
     end
   end
 
+  def do_cancel_session(
+        %{api_key: key, user: %{"id" => user_token}} = _identity,
+        %{api_url: url} = _session
+      ) do
+    Mojito.post("#{url}/cancel?user_token=#{user_token}", build_headers(key))
+    |> case do
+      {:ok, %{status_code: code, body: body}} when code in 200..299 ->
+        Jason.decode(body)
+
+      {:ok, %{status_code: code, body: body}} when code in 400..499 ->
+        {:error, Jason.decode!(body)}
+
+      {_, %{body: body}} ->
+        {:error, body}
+    end
+  end
+
   def do_create_session(%{api_key: key, user: %{"id" => user_token}} = _identity, attrs \\ %{}) do
     Mojito.post(
       @session_url <> "?user_token=#{user_token}",

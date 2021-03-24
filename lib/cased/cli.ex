@@ -12,6 +12,12 @@ defmodule Cased.CLI do
     wait_identify()
   end
 
+  def reauthenticate do
+    Cased.CLI.Identity.reset()
+    Cased.CLI.Identity.identify(self())
+    wait_identify()
+  end
+
   def start_session do
     Cased.CLI.Session.start()
     Cased.CLI.Session.create(self())
@@ -108,6 +114,13 @@ defmodule Cased.CLI do
         reason = Cased.CLI.Shell.prompt("Please enter a reason for access")
         Cased.CLI.Session.create(self(), %{reason: reason})
         wait_session()
+
+      {:error, "reauthenticate", _session} ->
+        Cased.CLI.Shell.info(
+          "You must re-authenticate with Cased due to recent changes to this application's settings."
+        )
+
+        reauthenticate()
 
       {:error, error, _session} ->
         IO.write("\n")
