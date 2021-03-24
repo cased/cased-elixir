@@ -127,10 +127,10 @@ defmodule Cased.CLI.Session do
 
   ## Cased API
 
-  def do_retrive_session(%{api_key: key, user: %{"id" => user_token}} = _identity, session_id) do
+  def do_retrive_session(%{user: %{"id" => user_token}} = _identity, session_id) do
     Mojito.get(
       @session_url <> "/#{session_id}" <> "?user_token=#{user_token}",
-      build_headers(key)
+      build_headers()
     )
     |> case do
       {:ok, %{status_code: code, body: body}} when code in 200..299 ->
@@ -145,10 +145,10 @@ defmodule Cased.CLI.Session do
   end
 
   def do_cancel_session(
-        %{api_key: key, user: %{"id" => user_token}} = _identity,
+        %{user: %{"id" => user_token}} = _identity,
         %{api_url: url} = _session
       ) do
-    Mojito.post("#{url}/cancel?user_token=#{user_token}", build_headers(key))
+    Mojito.post("#{url}/cancel?user_token=#{user_token}", build_headers())
     |> case do
       {:ok, %{status_code: code, body: body}} when code in 200..299 ->
         Jason.decode(body)
@@ -161,10 +161,10 @@ defmodule Cased.CLI.Session do
     end
   end
 
-  def do_create_session(%{api_key: key, user: %{"id" => user_token}} = _identity, attrs \\ %{}) do
+  def do_create_session(%{user: %{"id" => user_token}} = _identity, attrs \\ %{}) do
     Mojito.post(
       @session_url <> "?user_token=#{user_token}",
-      build_headers(key),
+      build_headers(),
       Jason.encode!(attrs),
       timeout: @request_timeout
     )
@@ -182,18 +182,18 @@ defmodule Cased.CLI.Session do
 
   def do_put_record(
         %{api_record_url: url} = _session,
-        %{api_key: key, user: %{"id" => user_token}} = _identify,
+        %{user: %{"id" => user_token}} = _identify,
         asciicast_data
       ) do
     Mojito.put(
       url <> "?user_token=#{user_token}",
-      build_headers(key),
+      build_headers(),
       Jason.encode!(%{recording: asciicast_data}),
       timeout: @request_timeout
     )
   end
 
-  defp build_headers(key) do
-    [{"Accept", "application/json"} | Cased.Headers.create(key)]
+  defp build_headers() do
+    [{"Accept", "application/json"} | Cased.Headers.create(Cased.CLI.Config.get(:app_key))]
   end
 end

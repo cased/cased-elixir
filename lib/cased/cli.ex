@@ -1,19 +1,14 @@
 defmodule Cased.CLI do
   @moduledoc false
 
-  def start(api_key) do
+  def start() do
     Cased.CLI.Shell.info("Running under Cased CLI.")
-    identify(api_key)
+    Cased.CLI.Config.start()
+    identify()
   end
 
-  def identify(api_key) do
-    Cased.CLI.Identity.start(api_key)
-    Cased.CLI.Identity.identify(self())
-    wait_identify()
-  end
-
-  def reauthenticate do
-    Cased.CLI.Identity.reset()
+  def identify() do
+    Cased.CLI.Identity.start()
     Cased.CLI.Identity.identify(self())
     wait_identify()
   end
@@ -24,12 +19,6 @@ defmodule Cased.CLI do
     wait_session()
   end
 
-  def welcome_record do
-    IO.write("\n")
-    Cased.CLI.Shell.info("record started")
-    :ok
-  end
-
   def shell_opts do
     [
       [
@@ -38,8 +27,7 @@ defmodule Cased.CLI do
           [".iex.exs", "~/.iex.exs", "/etc/iex.exs"]
           |> Enum.map(&Path.expand/1)
           |> Enum.find("", &File.regular?/1)
-      ],
-      {__MODULE__, :welcome_record, []}
+      ]
     ]
   end
 
@@ -92,6 +80,7 @@ defmodule Cased.CLI do
   def wait_session do
     receive do
       {:session, %{state: "approved"} = _session, _} ->
+        IO.write("\n")
         start_record()
 
       {:session, %{state: "requested"}, counter} ->
@@ -120,7 +109,8 @@ defmodule Cased.CLI do
           "You must re-authenticate with Cased due to recent changes to this application's settings."
         )
 
-        reauthenticate()
+        Cased.CLI.Identity.reset()
+        identify()
 
       {:error, error, _session} ->
         IO.write("\n")

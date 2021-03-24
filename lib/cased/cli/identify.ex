@@ -7,8 +7,7 @@ defmodule Cased.CLI.Identity do
   @request_timeout 15_000
 
   defmodule State do
-    defstruct api_key: nil,
-              api_url: nil,
+    defstruct api_url: nil,
               code: nil,
               url: nil,
               id: nil,
@@ -18,10 +17,16 @@ defmodule Cased.CLI.Identity do
 
   ## Client API
 
-  def start(api_key) do
+  def start() do
     case Process.whereis(__MODULE__) do
-      nil -> start_link(api_key: api_key)
-      pid -> {:ok, pid}
+      nil ->
+        case Cased.CLI.Config.get(:token) do
+          nil -> start_link()
+          token -> start_link(%{user: %{"id" => token}})
+        end
+
+      pid ->
+        {:ok, pid}
     end
   end
 
@@ -49,13 +54,13 @@ defmodule Cased.CLI.Identity do
 
   @impl true
   def handle_call(:get, _from, state) do
-    new_state = State.__struct__(Map.take(state, [:api_key]))
-    {:reply, new_state, new_state}
+    {:reply, state, state}
   end
 
   @impl true
-  def handle_call(:reset, _from, state) do
-    {:reply, state, state}
+  def handle_call(:reset, _from, _state) do
+    new_state = State.__struct__()
+    {:reply, new_state, new_state}
   end
 
   @impl true
@@ -64,9 +69,15 @@ defmodule Cased.CLI.Identity do
     {:noreply, state}
   end
 
+  def handle_cast({:identify, console_pid}, %{user: %{"id" => token}} = state)
+      when is_binary(token) do
+    send(console_pid, :identify_done)
+    {:noreply, state}
+  end
+
   @impl true
   def handle_cast({:identify, console_pid}, state) do
-    case do_identify(state.api_key) do
+    case do_identify() do
       {:ok, %{"url" => url, "code" => code, "api_url" => api_url}} ->
         new_state = %{state | url: url, code: code, api_url: api_url}
         send(console_pid, {:identify_init, url})
@@ -100,8 +111,8 @@ defmodule Cased.CLI.Identity do
     {:noreply, state}
   end
 
-  defp do_identify(key) do
-    case Mojito.post(@identify_url, build_headers(key), "", timeout: @request_timeout) do
+  defp do_identify() do
+    case Mojito.post(@identify_url, build_headers(), "", timeout: @request_timeout) do
       {:ok, %{status_code: 201, body: resp}} ->
         Jason.decode(resp)
 
@@ -110,8 +121,8 @@ defmodule Cased.CLI.Identity do
     end
   end
 
-  defp do_check(%{api_url: url, api_key: key} = _state) do
-    case Mojito.get(url, build_headers(key)) do
+  defp do_check(%{api_url: url} = _state) do
+    case Mojito.get(url, build_headers()) do
       {:ok, %{body: resp, status_code: 200}} ->
         Jason.decode(resp)
 
@@ -120,7 +131,7 @@ defmodule Cased.CLI.Identity do
     end
   end
 
-  defp build_headers(key) do
-    [{"Accept", "application/json"} | Cased.Headers.create(key)]
+  defp build_headers() do
+    [{"Accept", "application/json"} | Cased.Headers.create(Cased.CLI.Config.get(:app_key))]
   end
 end
