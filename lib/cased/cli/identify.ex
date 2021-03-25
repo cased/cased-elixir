@@ -19,19 +19,14 @@ defmodule Cased.CLI.Identity do
 
   def start() do
     case Process.whereis(__MODULE__) do
-      nil ->
-        case Cased.CLI.Config.get(:token) do
-          nil -> start_link()
-          token -> start_link(%{user: %{"id" => token}})
-        end
-
-      pid ->
-        {:ok, pid}
+      nil -> start_link([])
+      pid -> {:ok, pid}
     end
   end
 
-  def identify(console_pid) do
-    GenServer.cast(__MODULE__, {:identify, console_pid})
+  def identify() do
+    GenServer.cast(__MODULE__, {:identify, self()})
+    wait_identify()
   end
 
   def get do
@@ -46,9 +41,40 @@ defmodule Cased.CLI.Identity do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
+  def wait_identify do
+    receive do
+      {:identify_init, url} ->
+        Cased.CLI.Shell.info("To login, please visit:")
+        Cased.CLI.Shell.info(url)
+        wait_identify()
+
+      :identify_done ->
+        IO.write("\r")
+        Cased.CLI.Shell.info("Identify is complete")
+        Cased.CLI.Shell.info("Start cli session. ")
+        send(self(), :start_session)
+
+      {:identify_retry, count} ->
+        Cased.CLI.Shell.progress("#{String.duplicate(".", count)}")
+        wait_identify()
+
+      {:error, error} ->
+        Cased.CLI.Shell.info("Identify is fail. (#{inspect(error)}) ")
+    after
+      50_000 ->
+        IO.write("\n")
+        Cased.CLI.Shell.info("Identify is't complete")
+    end
+  end
+
+
   ## Server callback
   @impl true
-  def init(opts) do
+  def init(_opts) do
+    opts = case Cased.CLI.Config.get(:token) do
+             nil -> %{}
+             token -> %{user: %{"id" => token}}
+           end
     {:ok, State.__struct__(opts)}
   end
 
@@ -64,11 +90,6 @@ defmodule Cased.CLI.Identity do
   end
 
   @impl true
-  def handle_cast({:identify, console_pid}, %{id: id} = state) when not is_nil(id) do
-    send(console_pid, :identify_done)
-    {:noreply, state}
-  end
-
   def handle_cast({:identify, console_pid}, %{user: %{"id" => token}} = state)
       when is_binary(token) do
     send(console_pid, :identify_done)

@@ -27,12 +27,11 @@ defmodule Cased.CLI.Asciinema.File do
         SHELL: Map.get(meta, :shell),
         TERM: Map.get(meta, :term)
       },
-      width: Map.get(meta, :columns),
-      height: Map.get(meta, :rows),
+      width: Map.get(meta, :columns, 80),
+      height: Map.get(meta, :rows, 24),
       command: IO.iodata_to_binary(Map.get(meta, :command)),
       timestamp: DateTime.to_unix(started_at),
-      duration: duration,
-      title: "Cased Elixir"
+      duration: duration
     }
     |> Jason.encode!()
   end

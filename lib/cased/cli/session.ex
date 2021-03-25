@@ -47,20 +47,72 @@ defmodule Cased.CLI.Session do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  # def retrive_session(id) do
-  # end
-
   def get do
     GenServer.call(__MODULE__, :get)
   end
 
-  def create(console_pid, attrs \\ %{}) do
-    GenServer.cast(__MODULE__, {:create, console_pid, attrs})
+  def create(attrs \\ %{}) do
+    GenServer.cast(__MODULE__, {:create, self(), Cased.CLI.Identity.get(), attrs})
+    wait_session()
   end
 
   def upload_record(data) do
-    GenServer.call(__MODULE__, {:save_record, data})
+    GenServer.call(__MODULE__, {:save_record, Cased.CLI.Identity.get(), data})
   end
+
+  def wait_session do
+    receive do
+      {:session, %{state: "approved"} = _session, _} ->
+        send(self(), :start_record)
+
+      {:session, %{state: "requested"}, counter} ->
+        Cased.CLI.Shell.progress("Approval request sent#{String.duplicate(".", counter)}")
+        wait_session()
+
+      {:error, %{state: "denied"}, _} ->
+        IO.write("\n")
+        Cased.CLI.Shell.error("CLI session has been denied")
+
+      {:error, %{state: "timed_out"}, _} ->
+        IO.write("\n")
+        Cased.CLI.Shell.error("CLI session has timed out")
+
+      {:error, %{state: "canceled"}, _} ->
+        IO.write("\n")
+        Cased.CLI.Shell.error("CLI session has been canceled")
+
+      {:error, "reason_required", _session} ->
+        reason = Cased.CLI.Shell.prompt("Please enter a reason for access")
+        send(self(), {:start_session, %{reason: reason}})
+
+      {:error, "authenticate", _session} ->
+        send(self(), :authenticate)
+
+      {:error, "reauthenticate", _session} ->
+        Cased.CLI.Shell.error(
+          "You must re-authenticate with Cased due to recent changes to this application's settings."
+        )
+        send(self(), :reauthenticate)
+
+      {:error, "unauthorized", _session} ->
+        Cased.CLI.Shell.error("CLI session has error: unauthorized")
+
+        if Cased.CLI.Config.use_credentials?() do
+          Cased.CLI.Shell.error("Existing credentials are not valid.")
+        end
+        send(self(), :unauthorized)
+
+      {:error, error, _session} ->
+        IO.write("\n")
+        Cased.CLI.Shell.error("CLI session has error: #{inspect(error)}")
+    after
+      50_000 ->
+        IO.write("\n")
+        Cased.CLI.Shell.error("Could not start CLI session.")
+    end
+  end
+
+
 
   ## Server callback
   @impl true
@@ -74,19 +126,26 @@ defmodule Cased.CLI.Session do
   end
 
   @impl true
-  def handle_call({:save_record, data}, _from, state) do
-    do_put_record(state, Cased.CLI.Identity.get(), data)
+  def handle_call({:save_record, identity, data}, _from, state) do
+    do_put_record(state, identity, data)
     {:reply, state, state}
   end
 
   @impl true
-  def handle_cast({:create, console_pid, attrs}, state) do
-    case do_create_session(Cased.CLI.Identity.get(), attrs) do
+
+  def handle_cast({:create, console_pid, %{user: nil}, _}, state) do
+    send(console_pid, {:error, "authenticate", state})
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:create, console_pid, identity, attrs}, state) do
+    case do_create_session(identity, attrs) do
       {:ok, session} ->
         new_state = State.from_session(state, session)
 
         with %{state: "requested"} <- new_state do
-          Process.send_after(self(), {:wait_approval, console_pid, 0}, @poll_timer)
+          Process.send_after(self(), {:wait_approval, console_pid, identify, 0}, @poll_timer)
         end
 
         send(console_pid, {:session, new_state, 0})
@@ -102,13 +161,13 @@ defmodule Cased.CLI.Session do
   end
 
   @impl true
-  def handle_info({:wait_approval, console_pid, counter}, %{id: id} = state) do
-    case do_retrive_session(Cased.CLI.Identity.get(), id) do
+  def handle_info({:wait_approval, console_pid, identify, counter}, %{id: id} = state) do
+    case do_retrive_session(identify, id) do
       {:ok, session} ->
         new_state = State.from_session(state, session)
 
         with %{state: "requested"} <- new_state do
-          Process.send_after(self(), {:wait_approval, console_pid, counter + 1}, @poll_timer)
+          Process.send_after(self(), {:wait_approval, console_pid, identify, counter + 1}, @poll_timer)
         end
 
         send(console_pid, {:session, new_state, counter})

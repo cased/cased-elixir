@@ -2,6 +2,8 @@ defmodule Cased.CLI.Config do
   @moduledoc false
   use Agent
 
+  @keys [:token, :app_key]
+
   # Read API
   def started?() do
     Process.whereis(__MODULE__) != nil
@@ -26,12 +28,17 @@ defmodule Cased.CLI.Config do
   # Agent API
   def start(opts \\ %{}) do
     case Process.whereis(__MODULE__) do
-      nil ->
-        Agent.start_link(__MODULE__, :handle_init, [opts], name: __MODULE__)
-
-      _ ->
-        configure(opts)
+      nil -> start_link(opts)
+      _ -> configure(opts)
     end
+  end
+
+  def start_link(args) do
+    Agent.start_link(
+      __MODULE__,
+      :handle_init, [Map.take(Map.new(args), @keys)],
+      name: __MODULE__
+    )
   end
 
   def handle_init(opts) do
