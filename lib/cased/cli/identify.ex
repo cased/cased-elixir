@@ -154,6 +154,6 @@ defmodule Cased.CLI.Identity do
   end
 
   defp build_headers() do
-    [{"Accept", "application/json"} | Cased.Headers.create(Cased.CLI.Config.get(:app_key))]
+    [{"Accept", "application/json"} | Cased.Headers.create(Cased.CLI.Config.get(:app_key, ""))]
   end
 end

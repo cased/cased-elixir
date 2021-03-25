@@ -13,8 +13,8 @@ defmodule Cased.CLI.Config do
     Agent.get(__MODULE__, & &1)
   end
 
-  def get(key) do
-    Agent.get(__MODULE__, &Map.get(&1, key))
+  def get(key, default \\ nil) do
+    Agent.get(__MODULE__, &Map.get(&1, key, default))
   end
 
   def use_credentials? do
@@ -58,7 +58,8 @@ defmodule Cased.CLI.Config do
   end
 
   defp load_app_key(opts, :env) do
-    case Application.get_env(:cased, :guard_application_key) do
+    Application.get_env(:cased, :guard_application_key, System.get_env("GUARD_APPLICATION_KEY"))
+    |> case do
       key when is_binary(key) ->
         Map.merge(opts, %{app_key: key})
 
@@ -72,7 +73,8 @@ defmodule Cased.CLI.Config do
   end
 
   defp load_user_token(opts, :env) do
-    case Application.get_env(:cased, :guard_user_token) do
+    Application.get_env(:cased, :guard_user_token, System.get_env("GUARD_USER_TOKEN"))
+    |> case do
       token when is_binary(token) ->
         Map.merge(opts, %{token: token})
 
