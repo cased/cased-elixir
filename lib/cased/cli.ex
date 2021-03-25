@@ -12,24 +12,31 @@ defmodule Cased.CLI do
       :reauthenticate ->
         Cased.CLI.Identity.reset()
         Cased.CLI.Identity.identify()
+
       :unauthorized ->
         Cased.CLI.Identity.reset()
         Cased.CLI.Identity.identify()
         loop()
+
       :authenticate ->
         Cased.CLI.Identity.identify()
         loop()
+
       :start_session ->
         Cased.CLI.Session.create()
         loop()
+
       {:start_session, attrs} ->
         Cased.CLI.Session.create(attrs)
         loop()
+
       :start_record ->
         Cased.CLI.Recorder.start_record()
         loop()
+
       :stopped_record ->
         Cased.CLI.Shell.info("record stoped")
+
       _msg ->
         loop()
     end

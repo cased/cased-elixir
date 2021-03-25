@@ -36,7 +36,8 @@ defmodule Cased.CLI.Config do
   def start_link(args) do
     Agent.start_link(
       __MODULE__,
-      :handle_init, [Map.take(Map.new(args), @keys)],
+      :handle_init,
+      [Map.take(Map.new(args), @keys)],
       name: __MODULE__
     )
   end

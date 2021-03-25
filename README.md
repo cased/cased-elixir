@@ -6,6 +6,9 @@ A Cased client for Elixir applications in your organization to control and monit
 
 - [Installation](#installation)
 - [Configuration](#configuration)
+  - [Publisher](#for-publisher)
+  - [Client](#for-client)
+  - [CASED CLI](#for-client)
 - [Usage](#usage)
   - [Cased CLI](#cased-cli)
     - [Starting an approval workflow](#starting-an-approval-workflow)
@@ -154,6 +157,51 @@ end
 
 For reuse, consider caching your client structs in GenServer state, ETS, or another Elixir caching mechanism.
 
+### CLI
+
+To start an approval workflow you must first obtain your application key. Add your application key `config/config.exs`
+
+``` elixir
+
+ config :cased,
+  guard_application_key: "guard_application_xxxxxxxxxxxxxxxxxxxxx"
+
+```
+Optional you can add user token.
+
+
+``` elixir
+config :cased,
+  guard_application_key: "guard_application_xxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  guard_user_token: "user_xxxxxxxxxxxxxxxxxx"
+```
+
+And you need to add `Cased.CLI` as a child of your application.
+
+``` elixir
+children = [
+    # Other workers...
+    Cased.CLI.Supervisor
+ ]
+opts = [strategy: :one_for_one, name: Example.Supervisor]
+Supervisor.start_link(children, opts)
+```
+
+`Cased.CLI.Supervisor` also can accept `token` and `application_key`:
+
+``` elixir
+children = [
+    # Other workers...
+    {
+      Cased.CLI.Supervisor,
+      token: System.get_env("GUARD_USER_TOKEN"),
+      app_key: System.get_env("GUARD_APPLICATION_KEY")
+    }
+ ]
+opts = [strategy: :one_for_one, name: Example.Supervisor]
+Supervisor.start_link(children, opts)
+```
+
 ## Usage
 
 ### Cased CLI
@@ -165,7 +213,17 @@ Keep any command line tool available as your team grows — monitor usage, requi
 To start an approval workflow you must first obtain your application key and the
 user token for who is requesting access.
 
+``` elixir
+    iex(1)> Cased.CLI.Supervisor.start_link(token: "user_xxxxxxxxxxxxxxxxxx", app_key: "guard_application_xxxxxxxxxxxxxxxxxxxxxxxxxxx")
+    iex(2)> Cased.CLI.start
+```
+
 #### Starting an interactive approval workflow
+
+``` elixir
+    Interactive Elixir (1.11.3) - press Ctrl+C to exit (type h() ENTER for help)
+    iex(1)> Cased.CLI.start
+```
 
 
 ### Audit trails

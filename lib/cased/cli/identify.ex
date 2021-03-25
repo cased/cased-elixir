@@ -67,14 +67,15 @@ defmodule Cased.CLI.Identity do
     end
   end
 
-
   ## Server callback
   @impl true
   def init(_opts) do
-    opts = case Cased.CLI.Config.get(:token) do
-             nil -> %{}
-             token -> %{user: %{"id" => token}}
-           end
+    opts =
+      case Cased.CLI.Config.get(:token) do
+        nil -> %{}
+        token -> %{user: %{"id" => token}}
+      end
+
     {:ok, State.__struct__(opts)}
   end
 

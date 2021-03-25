@@ -31,12 +31,14 @@ defmodule Cased.CLI.Recorder do
     GenServer.call(__MODULE__, {:start, meta})
 
     pid = Process.whereis(__MODULE__)
+
     opts = [
       type: :elixir,
       shell_opts: shell_opts(),
       handler: pid,
       name: :ex_tty_handler_cased
     ]
+
     IO.write(IO.ANSI.clear() <> IO.ANSI.home())
     {:ok, iex_pid} = GenServer.start_link(ExTTY, opts)
     loop_io(iex_pid)
@@ -47,9 +49,9 @@ defmodule Cased.CLI.Recorder do
       [
         prefix: IO.ANSI.green() <> "[cased] " <> IO.ANSI.reset(),
         dot_iex_path:
-        [".iex.exs", "~/.iex.exs", "/etc/iex.exs"]
-        |> Enum.map(&Path.expand/1)
-        |> Enum.find("", &File.regular?/1)
+          [".iex.exs", "~/.iex.exs", "/etc/iex.exs"]
+          |> Enum.map(&Path.expand/1)
+          |> Enum.find("", &File.regular?/1)
       ],
       {__MODULE__, :record_usage, []}
     ]
@@ -61,7 +63,6 @@ defmodule Cased.CLI.Recorder do
     /q   -  Stop record
     """)
   end
-
 
   def stop_record(iex_pid) do
     GenServer.call(__MODULE__, :stop)
@@ -190,7 +191,7 @@ defmodule Cased.CLI.Recorder do
     %{
       state
       | events: [
-        {DateTime.now!("Etc/UTC"), event} | state[:events]
+          {DateTime.now!("Etc/UTC"), event} | state[:events]
         ]
     }
   end

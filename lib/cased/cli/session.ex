@@ -92,6 +92,7 @@ defmodule Cased.CLI.Session do
         Cased.CLI.Shell.error(
           "You must re-authenticate with Cased due to recent changes to this application's settings."
         )
+
         send(self(), :reauthenticate)
 
       {:error, "unauthorized", _session} ->
@@ -100,6 +101,7 @@ defmodule Cased.CLI.Session do
         if Cased.CLI.Config.use_credentials?() do
           Cased.CLI.Shell.error("Existing credentials are not valid.")
         end
+
         send(self(), :unauthorized)
 
       {:error, error, _session} ->
@@ -111,8 +113,6 @@ defmodule Cased.CLI.Session do
         Cased.CLI.Shell.error("Could not start CLI session.")
     end
   end
-
-
 
   ## Server callback
   @impl true
@@ -145,7 +145,7 @@ defmodule Cased.CLI.Session do
         new_state = State.from_session(state, session)
 
         with %{state: "requested"} <- new_state do
-          Process.send_after(self(), {:wait_approval, console_pid, identify, 0}, @poll_timer)
+          Process.send_after(self(), {:wait_approval, console_pid, identity, 0}, @poll_timer)
         end
 
         send(console_pid, {:session, new_state, 0})
@@ -167,7 +167,11 @@ defmodule Cased.CLI.Session do
         new_state = State.from_session(state, session)
 
         with %{state: "requested"} <- new_state do
-          Process.send_after(self(), {:wait_approval, console_pid, identify, counter + 1}, @poll_timer)
+          Process.send_after(
+            self(),
+            {:wait_approval, console_pid, identify, counter + 1},
+            @poll_timer
+          )
         end
 
         send(console_pid, {:session, new_state, counter})
