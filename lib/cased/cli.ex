@@ -19,15 +19,23 @@ defmodule Cased.CLI do
     wait_session()
   end
 
+  def record_usage do
+    IO.puts("""
+    Cased start record.
+    /q   -  Stop record
+    """)
+  end
+
   def shell_opts do
     [
       [
-        prefix: " " <> IO.ANSI.green() <> "[cased] " <> IO.ANSI.reset(),
+        prefix: IO.ANSI.green() <> "[cased] " <> IO.ANSI.reset(),
         dot_iex_path:
           [".iex.exs", "~/.iex.exs", "/etc/iex.exs"]
           |> Enum.map(&Path.expand/1)
           |> Enum.find("", &File.regular?/1)
-      ]
+      ],
+      {__MODULE__, :record_usage, []}
     ]
   end
 
@@ -54,6 +62,7 @@ defmodule Cased.CLI do
       name: :ex_tty_handler_cased
     ]
 
+    IO.write(IO.ANSI.clear() <> IO.ANSI.home())
     {:ok, iex_pid} = GenServer.start_link(ExTTY, opts)
     loop_io(iex_pid)
   end
@@ -65,7 +74,10 @@ defmodule Cased.CLI do
 
   def wait_input(iex_pid) do
     receive do
-      {:input, _, "/stop" <> _} ->
+      :eof ->
+        stop_record(iex_pid)
+
+      {:input, _, "/q" <> _} ->
         stop_record(iex_pid)
 
       {:input, _, data} ->
@@ -89,15 +101,15 @@ defmodule Cased.CLI do
 
       {:error, %{state: "denied"}, _} ->
         IO.write("\n")
-        Cased.CLI.Shell.info("CLI session has been denied")
+        Cased.CLI.Shell.error("CLI session has been denied")
 
       {:error, %{state: "timed_out"}, _} ->
         IO.write("\n")
-        Cased.CLI.Shell.info("CLI session has timed out")
+        Cased.CLI.Shell.error("CLI session has timed out")
 
       {:error, %{state: "canceled"}, _} ->
         IO.write("\n")
-        Cased.CLI.Shell.info("CLI session has been canceled")
+        Cased.CLI.Shell.error("CLI session has been canceled")
 
       {:error, "reason_required", _session} ->
         reason = Cased.CLI.Shell.prompt("Please enter a reason for access")
@@ -105,20 +117,30 @@ defmodule Cased.CLI do
         wait_session()
 
       {:error, "reauthenticate", _session} ->
-        Cased.CLI.Shell.info(
+        Cased.CLI.Shell.error(
           "You must re-authenticate with Cased due to recent changes to this application's settings."
         )
 
         Cased.CLI.Identity.reset()
         identify()
 
+      {:error, "unauthorized", _session} ->
+        Cased.CLI.Shell.error("CLI session has error: unauthorized")
+
+        if Cased.CLI.Config.use_credentials?() do
+          Cased.CLI.Shell.error("Existing credentials are not valid.")
+        end
+
+        Cased.CLI.Identity.reset()
+        identify()
+
       {:error, error, _session} ->
         IO.write("\n")
-        Cased.CLI.Shell.info("CLI session has error: #{inspect(error)}")
+        Cased.CLI.Shell.error("CLI session has error: #{inspect(error)}")
     after
       50_000 ->
         IO.write("\n")
-        Cased.CLI.Shell.error("Session don't created")
+        Cased.CLI.Shell.error("Could not start CLI session.")
     end
   end
 
@@ -130,7 +152,7 @@ defmodule Cased.CLI do
         wait_identify()
 
       :identify_done ->
-        IO.write("\n")
+        IO.write("\r")
         Cased.CLI.Shell.info("Identify is complete")
         Cased.CLI.Shell.info("Start cli session. ")
         start_session()

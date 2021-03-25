@@ -1,7 +1,8 @@
 defmodule Cased.CLI.Shell do
   @moduledoc false
 
-  @prefix "#{IO.ANSI.yellow()} [cased]#{IO.ANSI.reset()} "
+  @prefix "#{IO.ANSI.yellow()}[cased]#{IO.ANSI.reset()} "
+  @error_prefix "#{IO.ANSI.red()}[cased]#{IO.ANSI.reset()} "
 
   def mix_shell?, do: :erlang.function_exported(Mix, :shell, 0)
 
@@ -38,9 +39,9 @@ defmodule Cased.CLI.Shell do
 
   def error(message) do
     if mix_shell?() do
-      Mix.shell().error(@prefix <> message)
+      Mix.shell().error(@error_prefix <> message)
     else
-      IO.puts(:stderr, @prefix <> message)
+      IO.puts(:stderr, @error_prefix <> message)
     end
   end
 

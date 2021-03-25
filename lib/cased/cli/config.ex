@@ -15,8 +15,12 @@ defmodule Cased.CLI.Config do
     Agent.get(__MODULE__, &Map.get(&1, key))
   end
 
-  def configure(_opts) do
-    :ok
+  def use_credentials? do
+    not is_nil(Cased.CLI.Config.get(:token))
+  end
+
+  def configure(opts) do
+    Agent.update(__MODULE__, __MODULE__, :handle_configure, [opts])
   end
 
   # Agent API
@@ -35,6 +39,10 @@ defmodule Cased.CLI.Config do
     |> load_user_token(:env)
     |> load_user_token(:credentails)
     |> load_app_key(:env)
+  end
+
+  def handle_configure(config, opts) do
+    Map.merge(config, opts)
   end
 
   defp load_app_key(%{app_key: key} = opts, _) when is_binary(key) do
@@ -72,7 +80,7 @@ defmodule Cased.CLI.Config do
     end
   end
 
-  defp credentials_path do
+  def credentials_path do
     Path.expand(Path.join(["~", ".cguard", "credentials"]))
   end
 end

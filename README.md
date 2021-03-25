@@ -7,14 +7,17 @@ A Cased client for Elixir applications in your organization to control and monit
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
-  - [Publishing events to Cased](#publishing-events-to-cased)
-  - [Retrieving events from a Cased Policy](#retrieving-events-from-a-cased-policy)
-  - [Retrieving events from a Cased Policy containing variables](#retrieving-events-from-a-cased-policy-containing-variables)
-  - [Retrieving events from multiple Cased Policies](#retrieving-events-from-multiple-cased-policies)
-  - [Exporting events](#exporting-events)
-  - [Masking & filtering sensitive information](#masking-and-filtering-sensitive-information)
-  - [Context](#context)
-  - [Testing](#testing)
+  - [Cased CLI](#cased-cli)
+    - [Starting an approval workflow](#starting-an-approval-workflow)
+  - [Audit trails](#audit-trails)
+    - [Publishing events to Cased](#publishing-events-to-cased)
+    - [Retrieving events from a Cased Policy](#retrieving-events-from-a-cased-policy)
+    - [Retrieving events from a Cased Policy containing variables](#retrieving-events-from-a-cased-policy-containing-variables)
+    - [Retrieving events from multiple Cased Policies](#retrieving-events-from-multiple-cased-policies)
+    - [Exporting events](#exporting-events)
+    - [Masking & filtering sensitive information](#masking-and-filtering-sensitive-information)
+- [Context](#context)
+- [Testing](#testing)
 - [Contribution Guidelines](#contributing)
 
 
@@ -153,7 +156,21 @@ For reuse, consider caching your client structs in GenServer state, ETS, or anot
 
 ## Usage
 
-### Publishing events to Cased
+### Cased CLI
+
+Keep any command line tool available as your team grows — monitor usage, require peer approvals for sensitive operations, and receive intelligent alerts to suspicious activity.
+
+#### Starting an approval workflow
+
+To start an approval workflow you must first obtain your application key and the
+user token for who is requesting access.
+
+#### Starting an interactive approval workflow
+
+
+### Audit trails
+
+#### Publishing events to Cased
 
 Provided you've [configured](#for-publisher) the Cased publisher, use `Cased.publish/1`:
 
@@ -172,7 +189,7 @@ iex> %{
 
 :information_source: See the documentation for `Cased.publish/2` for more options.
 
-### Retrieving events from a Cased Policy
+#### Retrieving events from a Cased Policy
 
 If you plan on retrieving events from your audit trails you must use an Cased Policy token.
 
@@ -199,7 +216,7 @@ iex> event =
 %Cased.Event{...}
 ```
 
-### Retrieving events from a Cased Policy containing variables
+#### Retrieving events from a Cased Policy containing variables
 
 Cased policies allow you to filter events by providing variables to your Cased
 Policy events query. One example of a Cased Policy is to have a single Cased
@@ -223,7 +240,7 @@ iex> events =
 [%Cased.Event{...}, %Cased.Event{...}, %Cased.Event{...}]
 ```
 
-### Retrieving events from multiple Cased Policies
+#### Retrieving events from multiple Cased Policies
 
 To retrieve events from one or more Cased Policies you can configure multiple
 Cased Policy API keys and retrieve events for each one.
@@ -253,7 +270,7 @@ iex> org_events =
 [%Cased.Event{...}, %Cased.Event{...}, %Cased.Event{...}]
 ```
 
-### Exporting events
+#### Exporting events
 
 Exporting events from a Cased Policy allows you to provide users with exports of their own data or to respond to data requests.
 
@@ -278,7 +295,7 @@ The only required option is `:fields`.
 - When `:key` is omitted, the key configured for the `:audit_trail` (or first of `:audit_trails`) in
   the client is used.
 
-#### Retrieving an Export
+##### Retrieving an Export
 
 You can retrieve data about an export using `Cased.Export.get/2` (or `Cased.Export.get/3`):
 
@@ -302,7 +319,7 @@ iex> client
 
 For more information, see the documentation for `Cased.Export.get/3` and `Cased.Export.get_download/3`.
 
-### Masking & filtering sensitive information
+#### Masking & filtering sensitive information
 
 If you are handling sensitive information on behalf of your users, you should consider masking or filtering any sensitive information.
 
