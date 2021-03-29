@@ -18,9 +18,6 @@ defmodule Cased.CLI.Asciinema.File do
   end
 
   def build_header(%{meta: meta, started_at: started_at} = record) do
-    finished_at = Map.get(record, :finished_at, DateTime.now!("Etc/UTC"))
-    duration = DateTime.diff(finished_at, started_at, :nanosecond) / 1_000_000_000
-
     %{
       version: @version,
       env: %{
@@ -30,9 +27,17 @@ defmodule Cased.CLI.Asciinema.File do
       width: Map.get(meta, :columns, 80),
       height: Map.get(meta, :rows, 24),
       command: IO.iodata_to_binary(Map.get(meta, :command)),
-      timestamp: DateTime.to_unix(started_at),
-      duration: duration
+      timestamp: DateTime.to_unix(started_at)
     }
+    |> maybe_add_duration(record)
     |> Jason.encode!()
   end
+
+  defp maybe_add_duration(headers, %{started: started, finished: finished})
+  when not is_nil(finished) do
+    duration = DateTime.diff(finished, started, :nanosecond) / 1_000_000_000
+    Map.merge(headers, %{duration: duration})
+  end
+
+  defp maybe_add_duration(headers, _record), do: headers
 end

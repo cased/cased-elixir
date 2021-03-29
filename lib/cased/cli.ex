@@ -1,13 +1,26 @@
 defmodule Cased.CLI do
-  @moduledoc false
+  @moduledoc """
+  The Cased.CLI
 
+  The module responsibilities include:
+
+  * checks credentials
+  * identify user if need
+  * run record
+  """
+
+
+  @doc """
+  Starts session.
+  """
   def start() do
+    IO.write(IO.ANSI.clear() <> IO.ANSI.home())
     Cased.CLI.Shell.info("Running under Cased CLI.")
     Cased.CLI.Session.create()
     loop()
   end
 
-  def loop do
+  defp loop do
     receive do
       :reauthenticate ->
         Cased.CLI.Identity.reset()

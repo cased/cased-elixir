@@ -10,10 +10,6 @@ defmodule Cased.CLI.Recorder do
     end
   end
 
-  def put_event(event) do
-    GenServer.call(__MODULE__, {:put_event, event})
-  end
-
   def start_record do
     {_, rows} = :io.rows()
     {_, columns} = :io.columns()
@@ -91,7 +87,7 @@ defmodule Cased.CLI.Recorder do
 
   def wait_input(iex_pid) do
     receive do
-      :eof ->
+      {:input, :eof} ->
         stop_record(iex_pid)
 
       {:input, _, "/q" <> _} ->
@@ -152,23 +148,13 @@ defmodule Cased.CLI.Recorder do
   end
 
   @impl true
-  def handle_call({:put_event, event}, _from, state) do
-    new_state = %{
-      state
-      | events: [{DateTime.now!("Etc/UTC"), event} | state[:events]]
-    }
-
-    {:reply, new_state, new_state}
-  end
-
-  @impl true
   def handle_info({:tty_data, event}, state) do
-    clear_data = String.trim_trailing(event)
+    clear_data = String.trim_trailing(event, "\r\n")
 
     new_state =
       case state[:events] do
         [{_, previous_event} | _] ->
-          if String.trim_trailing(previous_event) == clear_data do
+          if String.trim_trailing(previous_event, "\r\n") == clear_data do
             state
           else
             IO.write(event)
