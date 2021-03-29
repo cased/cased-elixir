@@ -34,7 +34,7 @@ defmodule Cased.CLI.Asciinema.File do
   end
 
   defp maybe_add_duration(headers, %{started: started, finished: finished})
-  when not is_nil(finished) do
+       when not is_nil(finished) do
     duration = DateTime.diff(finished, started, :nanosecond) / 1_000_000_000
     Map.merge(headers, %{duration: duration})
   end

@@ -9,11 +9,11 @@ defmodule Cased.CLI do
   * run record
   """
 
-
   @doc """
   Starts session.
   """
   def start() do
+    Cased.CLI.Runner.post_run()
     IO.write(IO.ANSI.clear() <> IO.ANSI.home())
     Cased.CLI.Shell.info("Running under Cased CLI.")
     Cased.CLI.Session.create()

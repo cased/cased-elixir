@@ -14,6 +14,8 @@ defmodule Cased.CLI.Supervisor do
     ]
 
     opts = [strategy: :one_for_one, name: __MODULE__]
-    Supervisor.init(children, opts)
+    res = Supervisor.init(children, opts)
+    Cased.CLI.Runner.autorun(%{run: true})
+    res
   end
 end
