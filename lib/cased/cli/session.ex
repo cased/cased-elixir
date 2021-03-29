@@ -72,6 +72,7 @@ defmodule Cased.CLI.Session do
       {:error, %{state: "denied"}, _} ->
         IO.write("\n")
         Cased.CLI.Shell.error("CLI session has been denied")
+        :init.stop()
 
       {:error, %{state: "timed_out"}, _} ->
         IO.write("\n")
