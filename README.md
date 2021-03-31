@@ -8,7 +8,7 @@ A Cased client for Elixir applications in your organization to control and monit
 - [Configuration](#configuration)
   - [Publisher](#for-publisher)
   - [Client](#for-client)
-  - [CASED CLI](#for-client)
+  - [Cased CLI](#cli)
 - [Usage](#usage)
   - [Cased CLI](#cased-cli)
     - [Starting an approval workflow](#starting-an-approval-workflow)
@@ -200,6 +200,23 @@ children = [
  ]
 opts = [strategy: :one_for_one, name: Example.Supervisor]
 Supervisor.start_link(children, opts)
+```
+
+In order for the session to automatically run at the start the  console, add `Cased.CLI.Runner.run()` after starting your application.
+
+``` elixir
+  use Application
+
+  @impl true
+  def start(_type, _args) do
+    children = [
+      {Cased.CLI.Supervisor}
+    ]
+    opts = [strategy: :one_for_one, name: Example.Supervisor]
+    res = Supervisor.start_link(children, opts)
+    Cased.CLI.Runner.run()
+    res
+  end
 ```
 
 ## Usage
