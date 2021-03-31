@@ -76,6 +76,7 @@ defmodule Cased.CLI.Identity do
         token -> %{user: %{"id" => token}}
       end
 
+    Cased.CLI.Runner.started(:identify)
     {:ok, State.__struct__(opts)}
   end
 

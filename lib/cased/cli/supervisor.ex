@@ -6,7 +6,10 @@ defmodule Cased.CLI.Supervisor do
   end
 
   def init(args) do
+    Cased.CLI.Runner.autorun(Keyword.get(args, :run_via_iex, false))
+
     children = [
+      {Cased.CLI.Runner, args},
       {Cased.CLI.Config, args},
       Cased.CLI.Identity,
       Cased.CLI.Session,
@@ -14,8 +17,6 @@ defmodule Cased.CLI.Supervisor do
     ]
 
     opts = [strategy: :one_for_one, name: __MODULE__]
-    res = Supervisor.init(children, opts)
-    Cased.CLI.Runner.autorun(%{run: true})
-    res
+    Supervisor.init(children, opts)
   end
 end

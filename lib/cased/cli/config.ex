@@ -2,7 +2,7 @@ defmodule Cased.CLI.Config do
   @moduledoc false
   use Agent
 
-  @keys [:token, :app_key]
+  @keys [:token, :app_key, :run_via_iex]
 
   # Read API
   def started?() do
@@ -43,10 +43,14 @@ defmodule Cased.CLI.Config do
   end
 
   def handle_init(opts) do
-    opts
-    |> load_user_token(:env)
-    |> load_user_token(:credentails)
-    |> load_app_key(:env)
+    config =
+      opts
+      |> load_user_token(:env)
+      |> load_user_token(:credentails)
+      |> load_app_key(:env)
+
+    Cased.CLI.Runner.started(:config)
+    config
   end
 
   def handle_configure(config, opts) do

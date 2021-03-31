@@ -12,8 +12,9 @@ defmodule Cased.CLI do
   @doc """
   Starts session.
   """
-  def start() do
-    Cased.CLI.Runner.post_run()
+  def start(leader \\ nil) do
+    if leader, do: Process.group_leader(self(), leader)
+    Cased.CLI.Runner.post_run(Cased.CLI.Config.get(:run_via_iex, false))
     IO.write(IO.ANSI.clear() <> IO.ANSI.home())
     Cased.CLI.Shell.info("Running under Cased CLI.")
     Cased.CLI.Session.create()
