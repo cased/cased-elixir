@@ -2,7 +2,7 @@ defmodule Cased.CLI.Config do
   @moduledoc false
   use Agent
 
-  @keys [:token, :app_key, :run_via_iex]
+  @keys [:token, :app_key, :run_via_iex, :close_shell]
 
   # Read API
   def started?() do
@@ -20,6 +20,10 @@ defmodule Cased.CLI.Config do
   def use_credentials? do
     not is_nil(Cased.CLI.Config.get(:token))
   end
+
+  def valid_app_key, do: valid_app_key(get(:app_key))
+  def valid_app_key("guard_application" <> _key), do: true
+  def valid_app_key(_key), do: false
 
   def configure(opts) do
     Agent.update(__MODULE__, __MODULE__, :handle_configure, [opts])

@@ -9,47 +9,72 @@ defmodule Cased.CLI do
   * run record
   """
 
+  alias Cased.CLI.Runner
+  alias Cased.CLI.Shell
+  alias Cased.CLI.Session
+  alias Cased.CLI.Config
+  alias Cased.CLI.Identity
+  alias Cased.CLI.Recorder
+
   @doc """
   Starts session.
   """
   def start(leader \\ nil) do
     if leader, do: Process.group_leader(self(), leader)
-    Cased.CLI.Runner.post_run(Cased.CLI.Config.get(:run_via_iex, false))
     IO.write(IO.ANSI.clear() <> IO.ANSI.home())
-    Cased.CLI.Shell.info("Running under Cased CLI.")
-    Cased.CLI.Session.create()
+
+    case Config.valid_app_key() do
+      true ->
+        do_start()
+
+      _ ->
+        Shell.error("""
+        Application key not found or isn't valid.
+        """)
+    end
+
+    close_shell(Config.get(:close_shell, false))
+  end
+
+  defp do_start() do
+    Runner.post_run(Config.get(:run_via_iex, false))
+    Shell.info("Running under Cased CLI.")
+    Session.create()
     loop()
   end
+
+  defp close_shell(true), do: :init.stop()
+  defp close_shell(_), do: :ok
 
   defp loop do
     receive do
       :reauthenticate ->
-        Cased.CLI.Identity.reset()
-        Cased.CLI.Identity.identify()
+        Identity.reset()
+        Identity.identify()
 
       :unauthorized ->
-        Cased.CLI.Identity.reset()
-        Cased.CLI.Identity.identify()
+        Identity.reset()
+        Identity.identify()
         loop()
 
       :authenticate ->
-        Cased.CLI.Identity.identify()
+        Identity.identify()
         loop()
 
       :start_session ->
-        Cased.CLI.Session.create()
+        Session.create()
         loop()
 
       {:start_session, attrs} ->
-        Cased.CLI.Session.create(attrs)
+        Session.create(attrs)
         loop()
 
       :start_record ->
-        Cased.CLI.Recorder.start_record()
+        Recorder.start_record()
         loop()
 
       :stopped_record ->
-        Cased.CLI.Shell.info("record stoped")
+        Shell.info("record stoped")
 
       _msg ->
         loop()

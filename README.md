@@ -219,6 +219,12 @@ In order for the session to automatically run at the start the  console, add `C
   end
 ```
 
+Available params of `Cased.CLI`:
+
+- `app_key` - application key (required)
+- `token` - user token (option)
+- `close_shell` - close main shell after stop cased session
+
 ## Usage
 
 ### Cased CLI
