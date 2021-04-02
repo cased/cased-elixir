@@ -4,6 +4,8 @@ defmodule Cased.CLI.Runner do
 
   @keys [:autorun]
 
+  alias Cased.CLI.Shell
+
   def start_link(opts \\ %{}) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
@@ -32,8 +34,10 @@ defmodule Cased.CLI.Runner do
   def do_run(_), do: :ok
 
   def run() do
-    gl = Process.info(Process.whereis(:user_drv))[:dictionary][:current_group]
-    Cased.CLI.start(gl)
+    if is_pid(IEx.Broker.shell()) do
+      {:group_leader, gl} = Process.info(IEx.Broker.shell(), :group_leader)
+      Cased.CLI.start(gl)
+    end
   end
 
   @new_file_line "\n#cased-new-file\nCased.CLI.start\n"
