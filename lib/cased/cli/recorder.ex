@@ -1,6 +1,8 @@
 defmodule Cased.CLI.Recorder do
   use GenServer
 
+  @upload_timer 5_000
+
   ## Client API
 
   def start() do
@@ -110,6 +112,8 @@ defmodule Cased.CLI.Recorder do
 
     {:ok,
      %{
+       uploading: false,
+       uploader_pid: nil,
        record: false,
        started_at: nil,
        finished_at: nil,
@@ -133,14 +137,20 @@ defmodule Cased.CLI.Recorder do
         started_at: DateTime.now!("Etc/UTC")
     }
 
+    Process.send_after(self(), :upload, @upload_timer)
     {:reply, new_state, new_state}
   end
 
   @impl true
   def handle_call(:stop, _from, state) do
+    if is_pid(state[:uploader_pid]) do
+      Process.exit(state[:uploader_pid], :normal)
+    end
+
     new_state = %{
       state
-      | record: false,
+      | uploader_pid: nil,
+        record: false,
         finished_at: DateTime.now!("Etc/UTC")
     }
 
@@ -148,6 +158,23 @@ defmodule Cased.CLI.Recorder do
   end
 
   @impl true
+  def handle_info(:upload, %{uploading: false, record: true} = state) do
+    uploader_pid = spawn(fn -> do_upload() end)
+    Process.send_after(self(), :upload, @upload_timer)
+    {:noreply, %{state | uploading: true, uploader_pid: uploader_pid}}
+  end
+
+  def handle_info(:upload, %{record: true} = state) do
+    Process.send_after(self(), :upload, @upload_timer)
+    {:noreply, state}
+  end
+
+  def handle_info(:upload, state), do: {:noreply, state}
+
+  def handle_info(:uploaded, state) do
+    {:noreply, %{state | uploading: false, uploader_pid: nil}}
+  end
+
   def handle_info({:tty_data, event}, state) do
     clear_data = String.trim_trailing(event, "\r\n")
 
@@ -169,7 +196,8 @@ defmodule Cased.CLI.Recorder do
     {:noreply, new_state, 300_000}
   end
 
-  def handle_info(_msg, state) do
+  def handle_info(msg, state) do
+    IO.inspect(msg)
     {:noreply, [], state}
   end
 
@@ -180,5 +208,13 @@ defmodule Cased.CLI.Recorder do
           {DateTime.now!("Etc/UTC"), event} | state[:events]
         ]
     }
+  end
+
+  defp do_upload() do
+    Cased.CLI.Recorder.get()
+    |> Cased.CLI.Asciinema.File.build()
+    |> Cased.CLI.Session.upload_record()
+
+    send(Process.whereis(__MODULE__), :uploaded)
   end
 end

@@ -10,7 +10,6 @@ defmodule Cased.CLI.Asciinema.Uploader do
     GenServer.cast(__MODULE__, :add_event)
   end
 
-
   ## Server callback
   @impl true
   def init(_opts) do
@@ -40,5 +39,4 @@ defmodule Cased.CLI.Asciinema.Uploader do
     |> Cased.CLI.Asciinema.File.build()
     |> Cased.CLI.Session.upload_record()
   end
-
 end
