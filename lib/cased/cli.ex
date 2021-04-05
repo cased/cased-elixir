@@ -14,7 +14,7 @@ defmodule Cased.CLI do
   alias Cased.CLI.Session
   alias Cased.CLI.Config
   alias Cased.CLI.Identity
-  alias Cased.CLI.Recorder
+  alias Cased.CLI.Recorder2
 
   @doc """
   Starts session.
@@ -32,8 +32,6 @@ defmodule Cased.CLI do
         Application key not found or isn't valid.
         """)
     end
-
-    close_shell(Config.get(:close_shell, false))
   end
 
   defp do_start() do
@@ -70,8 +68,7 @@ defmodule Cased.CLI do
         loop()
 
       :start_record ->
-        Recorder.start_record()
-        loop()
+        Recorder2.start_record()
 
       :stopped_record ->
         Shell.info("record stoped")
