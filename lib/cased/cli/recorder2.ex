@@ -1,16 +1,14 @@
 defmodule Cased.CLI.Recorder2 do
-  use GenServer
+  @moduledoc false
+  use GenServer, shutdown: 30_000
 
   @upload_timer 5_000
 
   def stop_record() do
     GenServer.call(__MODULE__, :stop)
+    do_upload()
 
-    __MODULE__.get()
-    |> Cased.CLI.Asciinema.File.build()
-    |> Cased.CLI.Session.upload_record()
-
-    :init.stop()
+    # :init.stop()
   end
 
   def get do
@@ -63,7 +61,8 @@ defmodule Cased.CLI.Recorder2 do
        meta: %{},
        events: [],
        raw_events: [],
-       buf: ""
+       buf: "",
+       cursor_position: 0
      }}
   end
 
@@ -97,7 +96,7 @@ defmodule Cased.CLI.Recorder2 do
   end
 
   def handle_info(:upload, %{uploading: false, record: true} = state) do
-    uploader_pid = spawn(fn -> do_upload() end)
+    uploader_pid = spawn(fn -> upload() end)
     Process.send_after(self(), :upload, @upload_timer)
     {:noreply, %{state | uploading: true, uploader_pid: uploader_pid}}
   end
@@ -114,48 +113,73 @@ defmodule Cased.CLI.Recorder2 do
   end
 
   def handle_info({:trace_ts, _, :receive, {_, {:requests, [_ | _] = events}}, ts} = _msg, state) do
-    event_data =
-      Enum.reduce(events, [], fn
-        {:move_rel, 0}, acc ->
-          [IO.ANSI.cursor_left(1) | acc]
+    buf = state[:buf]
 
-        {:move_rel, n}, acc when n < 0 ->
-          [IO.ANSI.cursor_left(abs(n)) | acc]
+    {event_data, buf, cursor_position} =
+      Enum.reduce(events, {[], buf, state[:cursor_position]}, fn
+        {:move_rel, 0}, {acc, buf, pos} ->
+          {[IO.ANSI.cursor_left(1) | acc], buf, pos - 1}
 
-        {:move_rel, n}, acc when n > 0 ->
-          [IO.ANSI.cursor_right(n) | acc]
+        {:move_rel, n}, {acc, buf, pos} when n < 0 ->
+          {[IO.ANSI.cursor_left(abs(n)) | acc], buf, pos + n}
 
-        {:delete_chars, 0}, acc ->
-          [IO.ANSI.cursor_left(1) <> "\e[2K" | acc]
+        {:move_rel, n}, {acc, buf, pos} when n > 0 ->
+          {[IO.ANSI.cursor_right(n) | acc], buf, pos + n}
 
-        {:delete_chars, n}, acc ->
-          [IO.ANSI.cursor_left(abs(n)) <> "\e[0K" | acc]
+        {:delete_chars, 0}, {acc, buf, pos} ->
+          {[IO.ANSI.cursor_left(1) <> "\e[2K" | acc], buf, pos - 1}
 
-        {:insert_chars, :unicode, value}, ["\e[1D\e[2K" | acc] ->
-          [value | acc]
+        {:delete_chars, n}, {acc, buf, pos} ->
+          length_buf = String.length(buf)
+          new_pos = pos - n
+          tail_buf = String.slice(buf, new_pos, length_buf)
+          new_buf = String.slice(buf, 0, new_pos - 1) <> " " <> tail_buf
+          {[IO.ANSI.cursor_left(abs(n)) <> "\e[1P" | acc], new_buf, new_pos}
 
-        {:insert_chars, :unicode, value}, acc ->
-          [value | acc]
+        {:insert_chars, :unicode, value}, {acc, buf, pos} ->
+          new_pos = pos + 1
+          length_buf = String.length(buf)
+          tail_buf = String.slice(buf, pos, length_buf)
+          new_buf = String.slice(buf, 0, pos) <> IO.chardata_to_string(value) <> tail_buf
+          {["\u001b[1@#{IO.chardata_to_string(value)}" | acc], new_buf, new_pos}
 
-        {:put_chars, :unicode, data}, acc ->
-          [data | acc]
+        {:put_chars, :unicode, data}, {acc, buf, _pos} ->
+          [new_buf | _] = String.split(buf <> IO.chardata_to_string(data), "\n") |> Enum.reverse()
+          new_pos = String.length(new_buf) - 1
+          {[data | acc], new_buf, new_pos}
 
         _event, acc ->
           acc
       end)
+
+    event_data =
+      event_data
       |> Enum.reverse()
       |> Enum.join()
 
-    new_state = add_event(state, ts, event_data)
+    new_state =
+      %{state | buf: buf, cursor_position: cursor_position}
+      |> add_event(ts, event_data)
+
     {:noreply, new_state}
   end
 
   def handle_info({:trace_ts, _, _, {_, {:put_chars_sync, :unicode, data, _}}, ts} = _msg, state) do
-    {:noreply, add_event(state, ts, data)}
+    new_state =
+      %{state | buf: "", cursor_position: 0}
+      |> add_event(ts, data)
+
+    {:noreply, new_state}
   end
 
   def handle_info(_msg, state) do
     {:noreply, state}
+  end
+
+  def terminate(_reason, state) do
+    :erlang.trace(:all, false, [:all])
+    do_upload(state)
+    :normal
   end
 
   defp get_datetime({megasec, sec, _}) do
@@ -166,16 +190,22 @@ defmodule Cased.CLI.Recorder2 do
 
   defp add_event(state, ts, event) do
     event_data = String.replace(IO.chardata_to_string(event), "\n", "\r\n")
+
     events = [{get_datetime(ts), event_data} | state[:events]]
 
     %{state | events: events}
   end
 
-  defp do_upload() do
-    __MODULE__.get()
+  defp do_upload(state \\ nil) do
+    record = state || __MODULE__.get()
+
+    record
     |> Cased.CLI.Asciinema.File.build()
     |> Cased.CLI.Session.upload_record()
+  end
 
+  defp upload() do
+    do_upload()
     send(Process.whereis(__MODULE__), :uploaded)
   end
 end
