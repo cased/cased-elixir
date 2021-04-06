@@ -203,6 +203,9 @@ defmodule Cased.CLI.Session do
       {:ok, %{status_code: code, body: body}} when code in 400..499 ->
         {:error, Jason.decode!(body)}
 
+      {:error, %Mojito.Error{reason: reason}} ->
+        {:error, reason}
+
       {_, %{body: body}} ->
         {:error, body}
     end

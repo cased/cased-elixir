@@ -178,20 +178,21 @@ defmodule Cased.CLI.Recorder2 do
 
   def terminate(_reason, state) do
     :erlang.trace(:all, false, [:all])
+    Cased.CLI.Shell.info("Close `Cased` session.")
     do_upload(state)
     :normal
   end
 
-  defp get_datetime({megasec, sec, _}) do
-    unix_timestamp = megasec * 1_000_000 + sec
-
-    DateTime.from_unix!(unix_timestamp)
-  end
-
-  defp add_event(state, ts, event) do
+  defp add_event(%{events: events} = state, ts, event) do
     event_data = String.replace(IO.chardata_to_string(event), "\n", "\r\n")
 
-    events = [{get_datetime(ts), event_data} | state[:events]]
+    start_ts =
+      case events do
+        [{start_ts, _, _} | _] -> start_ts
+        _ -> ts
+      end
+
+    events = [{start_ts, :timer.now_diff(ts, start_ts) / 1_000_000, event_data} | events]
 
     %{state | events: events}
   end

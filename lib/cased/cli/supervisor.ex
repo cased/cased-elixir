@@ -6,8 +6,6 @@ defmodule Cased.CLI.Supervisor do
   end
 
   def init(args) do
-    Cased.CLI.Runner.autorun(Keyword.get(args, :run_via_iex, false))
-
     children = [
       {Cased.CLI.Runner, args},
       {Cased.CLI.Config, args},

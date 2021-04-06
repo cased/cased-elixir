@@ -9,7 +9,6 @@ defmodule Cased.CLI do
   * run record
   """
 
-  alias Cased.CLI.Runner
   alias Cased.CLI.Shell
   alias Cased.CLI.Session
   alias Cased.CLI.Config
@@ -21,7 +20,7 @@ defmodule Cased.CLI do
   """
   def start(leader \\ nil) do
     if leader, do: Process.group_leader(self(), leader)
-    IO.write(IO.ANSI.clear() <> IO.ANSI.home())
+    if Config.clear_screen(), do: IO.write(IO.ANSI.clear() <> IO.ANSI.home())
 
     case Config.valid_app_key() do
       true ->
@@ -31,18 +30,16 @@ defmodule Cased.CLI do
         Shell.error("""
         Application key not found or isn't valid.
         """)
+
+        :init.stop()
     end
   end
 
   defp do_start() do
-    Runner.post_run(Config.get(:run_via_iex, false))
     Shell.info("Running under Cased CLI.")
     Session.create()
     loop()
   end
-
-  defp close_shell(true), do: :init.stop()
-  defp close_shell(_), do: :ok
 
   defp loop do
     receive do

@@ -1,20 +1,19 @@
 defmodule Cased.CLI.Asciinema.File do
   @version 2
 
-  def build(%{events: events, started_at: started_at} = record) do
+  def build(%{events: events} = record) do
     json_events =
       events
       |> Enum.reduce(:first, fn
-        event, :first -> [build_event(started_at, event)]
-        event, acc -> [build_event(started_at, event) <> "\n" | acc]
+        event, :first -> [build_event(event)]
+        event, acc -> [build_event(event) <> "\n" | acc]
       end)
 
     IO.iodata_to_binary([build_header(record) <> "\n" | json_events])
   end
 
-  def build_event(started_at, {event_at, event_data} = _event) do
-    time_position = DateTime.diff(event_at, started_at, :nanosecond) / 1_000_000_000
-    Jason.encode!([time_position, "o", event_data])
+  def build_event({_event_at, ts, event_data} = _event) do
+    Jason.encode!([ts, "o", event_data])
   end
 
   def build_header(%{meta: meta, started_at: started_at} = record) do
