@@ -4,8 +4,6 @@ defmodule Cased.CLI.Runner do
 
   @keys [:autorun]
 
-  alias Cased.CLI.Shell
-
   def start_link(opts \\ %{}) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end

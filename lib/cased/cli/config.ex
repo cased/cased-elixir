@@ -2,7 +2,7 @@ defmodule Cased.CLI.Config do
   @moduledoc false
   use Agent
 
-  @keys [:token, :app_key, :run_via_iex, :clear_screen_before]
+  @keys [:token, :app_key, :run_via_iex, :clear_screen]
 
   # Read API
   def started?() do
@@ -26,7 +26,7 @@ defmodule Cased.CLI.Config do
   def valid_app_key(_key), do: false
 
   def clear_screen do
-    get(:clear_screen_before, false)
+    get(:clear_screen, false)
   end
 
   def configure(opts) do

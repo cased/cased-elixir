@@ -223,7 +223,7 @@ Available params of `Cased.CLI`:
 
 - `app_key` - application key (required)
 - `token` - user token (option)
-- `close_shell` - close main shell after stop cased session
+- `clear_screen` - clear screen before start. default is false
 
 ## Usage
 
