@@ -30,23 +30,6 @@ defmodule Cased.CLI.Runner do
   end
 
   @impl true
-  def handle_info(:setup_shell, state) do
-    with sev_pid when is_pid(sev_pid) <- IEx.Broker.shell(),
-         {_, dict} <- Process.info(sev_pid, :dictionary),
-         eval_pid when is_pid(eval_pid) <- Keyword.get(dict, :evaluator) do
-      send(
-        eval_pid,
-        {:eval, sev_pid, "import(Cased.CLI, only: [stop: 0]);IEx.dont_display_result()",
-         %IEx.State{}}
-      )
-    else
-      _ ->
-        Process.send_after(self(), :setup_shell, 500)
-    end
-
-    {:noreply, state}
-  end
-
   def handle_info(_, state), do: {:noreply, state}
 
   def do_run(%{config: :started, identify: :started, autorun: true}) do
@@ -57,7 +40,6 @@ defmodule Cased.CLI.Runner do
 
   def run() do
     if is_pid(IEx.Broker.shell()) do
-      Process.send_after(Process.whereis(__MODULE__), :setup_shell, 500)
       {:group_leader, gl} = Process.info(IEx.Broker.shell(), :group_leader)
       Cased.CLI.start(gl)
     end
