@@ -8,7 +8,7 @@ defmodule Cased.CLI.Recorder do
     GenServer.call(__MODULE__, :stop)
     do_upload()
 
-    # :init.stop()
+    :init.stop()
   end
 
   def get do
@@ -39,6 +39,8 @@ defmodule Cased.CLI.Recorder do
 
     IO.write("\n")
     Cased.CLI.Shell.info("Start record.")
+
+    Cased.CLI.Shell.info("usage `stop` to close session .")
     IEx.dont_display_result()
     GenServer.call(__MODULE__, {:start, meta})
     IEx.dont_display_result()
@@ -95,7 +97,7 @@ defmodule Cased.CLI.Recorder do
     {:reply, new_state, new_state}
   end
 
-  def handle_info(:upload, %{uploading: false, record: true} = state) do
+  def handle_info(:upload, %{uploading: false, record: true, events: [_ | _]} = state) do
     uploader_pid = spawn(fn -> upload() end)
     Process.send_after(self(), :upload, @upload_timer)
     {:noreply, %{state | uploading: true, uploader_pid: uploader_pid}}

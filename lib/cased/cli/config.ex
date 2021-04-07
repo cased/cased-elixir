@@ -3,7 +3,7 @@ defmodule Cased.CLI.Config do
   use Agent
   @api_endpoint "https://api.cased.com"
   @credentials_keys [:token, :app_key]
-  @config_keys [:clear_screen, :api_endpoint]
+  @config_keys [:clear_screen, :api_endpoint, :autorun]
 
   # Read API
   def started?() do

@@ -35,8 +35,13 @@ defmodule Cased.CLI do
     end
   end
 
+  def stop do
+    Cased.CLI.Recorder.stop_record()
+  end
+
   defp do_start() do
     Shell.info("Running under Cased CLI.")
+
     Session.create()
     loop()
   end
