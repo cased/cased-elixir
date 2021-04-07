@@ -1,8 +1,8 @@
 defmodule Cased.CLI.Config do
   @moduledoc false
   use Agent
-
-  @keys [:token, :app_key, :run_via_iex, :clear_screen]
+  @api_endpoint "https://api.cased.com"
+  @keys [:token, :app_key, :run_via_iex, :clear_screen, :api_endpoint]
 
   # Read API
   def started?() do
@@ -27,6 +27,10 @@ defmodule Cased.CLI.Config do
 
   def clear_screen do
     get(:clear_screen, false)
+  end
+
+  def api_endpoint do
+    get(:api_endpoint, @api_endpoint)
   end
 
   def configure(opts) do

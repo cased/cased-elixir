@@ -3,9 +3,9 @@ defmodule Cased.CLI.Session do
 
   use GenServer
 
-  @session_url "https://api.cased.com/cli/sessions"
-  @request_timeout 15_000
   @poll_timer 1_000
+
+  alias Cased.CLI.Api
 
   defmodule State do
     defstruct id: nil,
@@ -128,7 +128,7 @@ defmodule Cased.CLI.Session do
 
   @impl true
   def handle_call({:save_record, identity, data}, _from, state) do
-    do_put_record(state, identity, data)
+    Api.Session.put_record(state, identity, data)
     {:reply, state, state}
   end
 
@@ -141,7 +141,7 @@ defmodule Cased.CLI.Session do
 
   @impl true
   def handle_cast({:create, console_pid, identity, attrs}, state) do
-    case do_create_session(identity, attrs) do
+    case Api.Session.create(identity, attrs) do
       {:ok, session} ->
         new_state = State.from_session(state, session)
 
@@ -163,7 +163,7 @@ defmodule Cased.CLI.Session do
 
   @impl true
   def handle_info({:wait_approval, console_pid, identify, counter}, %{id: id} = state) do
-    case do_retrive_session(identify, id) do
+    case Api.Session.retrive(identify, id) do
       {:ok, session} ->
         new_state = State.from_session(state, session)
 
@@ -187,80 +187,5 @@ defmodule Cased.CLI.Session do
         send(console_pid, {:error, error, state})
         {:noreply, state}
     end
-  end
-
-  ## Cased API
-
-  def do_retrive_session(%{user: %{"id" => user_token}} = _identity, session_id) do
-    Mojito.get(
-      @session_url <> "/#{session_id}" <> "?user_token=#{user_token}",
-      build_headers()
-    )
-    |> case do
-      {:ok, %{status_code: code, body: body}} when code in 200..299 ->
-        Jason.decode(body)
-
-      {:ok, %{status_code: code, body: body}} when code in 400..499 ->
-        {:error, Jason.decode!(body)}
-
-      {:error, %Mojito.Error{reason: reason}} ->
-        {:error, reason}
-
-      {_, %{body: body}} ->
-        {:error, body}
-    end
-  end
-
-  def do_cancel_session(
-        %{user: %{"id" => user_token}} = _identity,
-        %{api_url: url} = _session
-      ) do
-    Mojito.post("#{url}/cancel?user_token=#{user_token}", build_headers())
-    |> case do
-      {:ok, %{status_code: code, body: body}} when code in 200..299 ->
-        Jason.decode(body)
-
-      {:ok, %{status_code: code, body: body}} when code in 400..499 ->
-        {:error, Jason.decode!(body)}
-
-      {_, %{body: body}} ->
-        {:error, body}
-    end
-  end
-
-  def do_create_session(%{user: %{"id" => user_token}} = _identity, attrs \\ %{}) do
-    Mojito.post(
-      @session_url <> "?user_token=#{user_token}",
-      build_headers(),
-      Jason.encode!(attrs),
-      timeout: @request_timeout
-    )
-    |> case do
-      {:ok, %{status_code: code, body: body}} when code in 200..299 ->
-        Jason.decode(body)
-
-      {:ok, %{status_code: code, body: body}} when code in 400..499 ->
-        {:invalid, Jason.decode!(body)}
-
-      {_, %{body: body}} ->
-        {:error, body}
-    end
-  end
-
-  def do_put_record(
-        %{api_record_url: url} = _session,
-        %{user: %{"id" => user_token}} = _identify,
-        asciicast_data
-      ) do
-    Mojito.put(
-      url <> "?user_token=#{user_token}",
-      build_headers(),
-      Jason.encode!(%{recording: asciicast_data}),
-      timeout: @request_timeout
-    )
-  end
-
-  defp build_headers() do
-    [{"Accept", "application/json"} | Cased.Headers.create(Cased.CLI.Config.get(:app_key, ""))]
   end
 end

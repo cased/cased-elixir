@@ -2,9 +2,9 @@ defmodule Cased.CLI.Identity do
   @moduledoc false
   use GenServer
 
-  @identify_url "https://api.cased.com/cli/applications/users/identify"
   @poll_timer 1_000
-  @request_timeout 15_000
+
+  alias Cased.CLI.Api
 
   defmodule State do
     defstruct api_url: nil,
@@ -100,7 +100,7 @@ defmodule Cased.CLI.Identity do
 
   @impl true
   def handle_cast({:identify, console_pid}, state) do
-    case do_identify() do
+    case Api.Identity.identify() do
       {:ok, %{"url" => url, "code" => code, "api_url" => api_url}} ->
         new_state = %{state | url: url, code: code, api_url: api_url}
         send(console_pid, {:identify_init, url})
@@ -116,7 +116,7 @@ defmodule Cased.CLI.Identity do
   @impl true
   def handle_info({:check, console_pid, count}, state) do
     new_state =
-      case do_check(state) do
+      case Api.Identity.check(state) do
         {:ok, %{"id" => id, "user" => user, "ip_address" => ip_address}} ->
           send(console_pid, :identify_done)
           %{state | id: id, user: user, ip_address: ip_address}
@@ -132,29 +132,5 @@ defmodule Cased.CLI.Identity do
 
   def handle_info(_, state) do
     {:noreply, state}
-  end
-
-  defp do_identify() do
-    case Mojito.post(@identify_url, build_headers(), "", timeout: @request_timeout) do
-      {:ok, %{status_code: 201, body: resp}} ->
-        Jason.decode(resp)
-
-      error ->
-        error
-    end
-  end
-
-  defp do_check(%{api_url: url} = _state) do
-    case Mojito.get(url, build_headers()) do
-      {:ok, %{body: resp, status_code: 200}} ->
-        Jason.decode(resp)
-
-      {_, response} ->
-        {:error, response}
-    end
-  end
-
-  defp build_headers() do
-    [{"Accept", "application/json"} | Cased.Headers.create(Cased.CLI.Config.get(:app_key, ""))]
   end
 end
