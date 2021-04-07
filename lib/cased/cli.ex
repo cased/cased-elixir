@@ -13,7 +13,7 @@ defmodule Cased.CLI do
   alias Cased.CLI.Session
   alias Cased.CLI.Config
   alias Cased.CLI.Identity
-  alias Cased.CLI.Recorder2
+  alias Cased.CLI.Recorder
 
   @doc """
   Starts session.
@@ -65,7 +65,7 @@ defmodule Cased.CLI do
         loop()
 
       :start_record ->
-        Recorder2.start_record()
+        Recorder.start_record()
 
       :stopped_record ->
         Shell.info("record stoped")

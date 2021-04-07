@@ -61,10 +61,10 @@ defmodule Cased.CLI.Api.Session do
   end
 
   def put_record(
-    %{api_record_url: url} = _session,
-    %{user: %{"id" => user_token}} = _identify,
-    asciicast_data
-  ) do
+        %{api_record_url: url} = _session,
+        %{user: %{"id" => user_token}} = _identify,
+        asciicast_data
+      ) do
     Mojito.put(
       url <> "?user_token=#{user_token}",
       build_headers(),
@@ -74,7 +74,6 @@ defmodule Cased.CLI.Api.Session do
   end
 
   defp api_endpoint(), do: Cased.CLI.Config.api_endpoint()
-
 
   defp build_headers() do
     [{"Accept", "application/json"} | Cased.Headers.create(Cased.CLI.Config.get(:app_key, ""))]

@@ -2,7 +2,8 @@ defmodule Cased.CLI.Config do
   @moduledoc false
   use Agent
   @api_endpoint "https://api.cased.com"
-  @keys [:token, :app_key, :run_via_iex, :clear_screen, :api_endpoint]
+  @credentials_keys [:token, :app_key]
+  @config_keys [:clear_screen, :api_endpoint]
 
   # Read API
   def started?() do
@@ -49,7 +50,7 @@ defmodule Cased.CLI.Config do
     Agent.start_link(
       __MODULE__,
       :handle_init,
-      [Map.take(Map.new(args), @keys)],
+      [Map.take(Map.new(args), @credentials_keys ++ @config_keys)],
       name: __MODULE__
     )
   end
@@ -60,6 +61,8 @@ defmodule Cased.CLI.Config do
       |> load_user_token(:env)
       |> load_user_token(:credentails)
       |> load_app_key(:env)
+      |> load_env()
+      |> load_default()
 
     Cased.CLI.Runner.started(:config)
     config
@@ -67,6 +70,25 @@ defmodule Cased.CLI.Config do
 
   def handle_configure(config, opts) do
     Map.merge(config, opts)
+  end
+
+  defp load_env(opts) do
+    Enum.reduce(@config_keys, opts, fn key, acc -> load_env(acc, key) end)
+  end
+
+  defp load_env(opts, key) do
+    Application.get_env(:cased, key, System.get_env(Atom.to_string(key)))
+    |> prepare_param
+    |> case do
+      nil -> opts
+      value -> Map.put_new(opts, key, value)
+    end
+  end
+
+  defp load_default(opts) do
+    opts
+    |> Map.put_new(:api_endpoint, @api_endpoint)
+    |> Map.put_new(:clear_screen, false)
   end
 
   defp load_app_key(%{app_key: key} = opts, _) when is_binary(key) do
@@ -109,4 +131,16 @@ defmodule Cased.CLI.Config do
   def credentials_path do
     Path.expand(Path.join(["~", ".cguard", "credentials"]))
   end
+
+  defp prepare_param(value) when is_boolean(value), do: value
+
+  defp prepare_param(value) when is_binary(value) do
+    case String.trim(value) do
+      val when val in ["true", "1", "t"] -> true
+      val when val in ["false", "0", "f"] -> false
+      val -> val
+    end
+  end
+
+  defp prepare_param(value), do: value
 end

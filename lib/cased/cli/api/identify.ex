@@ -24,7 +24,7 @@ defmodule Cased.CLI.Api.Identity do
   end
 
   defp identify_url() do
-    Cased.CLI.Config.api_endpoint <> "/cli/applications/users/identify"
+    Cased.CLI.Config.api_endpoint() <> "/cli/applications/users/identify"
   end
 
   defp build_headers() do

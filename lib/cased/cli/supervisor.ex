@@ -11,7 +11,7 @@ defmodule Cased.CLI.Supervisor do
       {Cased.CLI.Config, args},
       Cased.CLI.Identity,
       Cased.CLI.Session,
-      Cased.CLI.Recorder2
+      Cased.CLI.Recorder
     ]
 
     opts = [strategy: :one_for_one, name: __MODULE__]
