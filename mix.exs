@@ -22,7 +22,7 @@ defmodule Cased.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger, :iex]
     ]
   end
 
@@ -37,7 +37,7 @@ defmodule Cased.MixProject do
       {:norm, "~> 0.12"},
       {:plug, "~> 1.10.3"},
       {:deep_merge, "~> 1.0.0"},
-      {:extty, "~> 0.2"}
+      {:mock, "~> 0.3.6", only: :test}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]

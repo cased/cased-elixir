@@ -206,9 +206,15 @@ defmodule Cased.CLI.Recorder do
   defp do_upload(record \\ nil) do
     record = record || __MODULE__.get()
 
-    record
-    |> Cased.CLI.Asciinema.File.build()
-    |> Cased.CLI.Session.upload_record()
+    case record do
+      %{events: [_ | _]} ->
+        record
+        |> Cased.CLI.Asciinema.File.build()
+        |> Cased.CLI.Session.upload_record()
+
+      _ ->
+        :ok
+    end
   end
 
   defp upload() do

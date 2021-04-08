@@ -31,9 +31,11 @@ defmodule Cased.CLI do
         Application key not found or isn't valid.
         """)
 
-        :init.stop()
+        Cased.CLI.exit()
     end
   end
+
+  def exit, do: :init.stop()
 
   def stop do
     Cased.CLI.Recorder.stop_record()
