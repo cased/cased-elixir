@@ -1,6 +1,8 @@
 defmodule Cased.CLI.Api.Session do
   @moduledoc "Session API"
 
+  alias Cased.CLI.Config
+
   @session_path "/cli/sessions"
   @request_timeout 15_000
 
@@ -73,9 +75,9 @@ defmodule Cased.CLI.Api.Session do
     )
   end
 
-  defp api_endpoint(), do: Cased.CLI.Config.api_endpoint()
+  defp api_endpoint(), do: Config.api_endpoint()
 
   defp build_headers() do
-    [{"Accept", "application/json"} | Cased.Headers.create(Cased.CLI.Config.get(:app_key, ""))]
+    [{"Accept", "application/json"} | Cased.Headers.create(Config.app_key())]
   end
 end

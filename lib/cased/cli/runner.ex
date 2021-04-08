@@ -12,6 +12,10 @@ defmodule Cased.CLI.Runner do
     GenServer.cast(__MODULE__, {:started, component})
   end
 
+  def execute_in_shell(command) do
+    send(Process.whereis(__MODULE__), {:execute_in_shell, command})
+  end
+
   ## Server callback
   @impl true
   def init(opts) do
@@ -30,6 +34,19 @@ defmodule Cased.CLI.Runner do
   end
 
   @impl true
+  def handle_info({:execute_in_shell, command}, state) do
+    with sev_pid when is_pid(sev_pid) <- IEx.Broker.shell(),
+         {_, dict} <- Process.info(sev_pid, :dictionary),
+         eval_pid when is_pid(eval_pid) <- Keyword.get(dict, :evaluator) do
+      send(eval_pid, {:eval, sev_pid, command, %IEx.State{}})
+    else
+      _ ->
+        Process.send_after(self(), {:execute_in_shell, command}, 1000)
+    end
+
+    {:noreply, state}
+  end
+
   def handle_info(_, state), do: {:noreply, state}
 
   def do_run(%{config: :started, identify: :started, autorun: true}) do
@@ -46,7 +63,7 @@ defmodule Cased.CLI.Runner do
   end
 
   defp autorun(%{config: :started} = state) do
-    if Cased.CLI.Config.get(:autorun, false) do
+    if Cased.CLI.Config.autorun() do
       Map.merge(state, %{autorun: true})
     else
       state

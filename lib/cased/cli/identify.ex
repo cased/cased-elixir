@@ -1,10 +1,14 @@
 defmodule Cased.CLI.Identity do
-  @moduledoc false
+  @moduledoc """
+  The modulus represents gen_server behaviour to identify user.
+  """
+
   use GenServer
 
-  @poll_timer 1_000
-
   alias Cased.CLI.Api
+  alias Cased.CLI.Config
+
+  @poll_timer 1_000
 
   defmodule State do
     defstruct api_url: nil,
@@ -13,6 +17,8 @@ defmodule Cased.CLI.Identity do
               id: nil,
               user: nil,
               ip_address: nil
+
+    @type t :: __MODULE__
   end
 
   ## Client API
@@ -24,11 +30,16 @@ defmodule Cased.CLI.Identity do
     end
   end
 
+  @doc """
+  Start user identify and wait result.
+  """
   def identify() do
     GenServer.cast(__MODULE__, {:identify, self()})
     wait_identify()
   end
 
+  @doc "Get current identity"
+  @spec get() :: Cased.CLI.Identity.State.t()
   def get do
     GenServer.call(__MODULE__, :get)
   end
@@ -71,7 +82,7 @@ defmodule Cased.CLI.Identity do
   @impl true
   def init(_opts) do
     opts =
-      case Cased.CLI.Config.get(:token) do
+      case Config.token() do
         nil -> %{}
         token -> %{user: %{"id" => token}}
       end

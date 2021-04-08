@@ -1,39 +1,78 @@
 defmodule Cased.CLI.Config do
-  @moduledoc false
+  @moduledoc """
+  Cased CLI Configuration
+
+  All configuration items can be set via Environment variables _or_ via `Application` config
+  """
+
   use Agent
+
   @api_endpoint "https://api.cased.com"
   @credentials_keys [:token, :app_key]
   @config_keys [:clear_screen, :api_endpoint, :autorun]
 
-  # Read API
-  def started?() do
-    Process.whereis(__MODULE__) != nil
-  end
+  @doc """
+  **Required**
 
+  Configure your application key.
+
+  Application key can be configured in two ways:
+  * Environment variable: `GUARD_APPLICATION_KEY=guard_application_xxxx`
+  * Application config: `config :cased, app_key: "guard_application_xxxx"`
+  """
+  @spec app_key() :: String.t()
+  def app_key, do: get(:app_key, "")
+
+  @doc """
+  **Optional**
+
+  User token can be configured in two ways:
+  * Environment variable: `GUARD_USER_TOKEN=user_xxxxxxxxx`
+  * Application config: `config :cased, token: "user_xxxxxxx"`
+  """
+  @spec token() :: String.t() | nil
+  def token, do: get(:token, nil)
+
+  @doc false
+  @spec clear_screen() :: boolean
+  def clear_screen, do: get(:clear_screen, false)
+
+  @doc "API endpoind url"
+  @spec api_endpoint() :: String.t()
+  def api_endpoint, do: get(:api_endpoint, @api_endpoint)
+
+  @doc """
+  Turn off\on autorun Cased session.
+
+  Autorun can be configured in two ways:
+  * Environment variables: `autorun=true`
+  * Application config: `config :cased, autorun: true`
+  """
+  @spec autorun() :: boolean()
+  def autorun, do: get(:autorun, false)
+
+  @doc "Returns all configurations"
+  @spec configuration() :: map()
   def configuration() do
     Agent.get(__MODULE__, & &1)
   end
 
+  @spec get(atom(), any()) :: any()
   def get(key, default \\ nil) do
     Agent.get(__MODULE__, &Map.get(&1, key, default))
   end
 
-  def use_credentials? do
-    not is_nil(Cased.CLI.Config.get(:token))
-  end
+  @spec use_credentials?() :: boolean()
+  def use_credentials?, do: not is_nil(get(:token))
 
+  @doc "Validates app_key"
+  @spec valid_app_key() :: boolean()
   def valid_app_key, do: valid_app_key(get(:app_key))
   def valid_app_key("guard_application" <> _key), do: true
   def valid_app_key(_key), do: false
 
-  def clear_screen do
-    get(:clear_screen, false)
-  end
-
-  def api_endpoint do
-    get(:api_endpoint, @api_endpoint)
-  end
-
+  @doc false
+  @spec configure(map()) :: map()
   def configure(opts) do
     Agent.update(__MODULE__, __MODULE__, :handle_configure, [opts])
   end
@@ -128,7 +167,7 @@ defmodule Cased.CLI.Config do
     end
   end
 
-  def credentials_path do
+  defp credentials_path do
     Path.expand(Path.join(["~", ".cguard", "credentials"]))
   end
 

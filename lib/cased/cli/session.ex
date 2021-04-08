@@ -51,23 +51,23 @@ defmodule Cased.CLI.Session do
     GenServer.call(__MODULE__, :get)
   end
 
-  def create(attrs \\ %{}) do
-    GenServer.cast(__MODULE__, {:create, self(), Cased.CLI.Identity.get(), attrs})
-    wait_session()
+  def create(io_pid, attrs \\ %{}) do
+    GenServer.cast(__MODULE__, {:create, io_pid, Cased.CLI.Identity.get(), attrs})
+    wait_session(io_pid)
   end
 
   def upload_record(data) do
     GenServer.call(__MODULE__, {:save_record, Cased.CLI.Identity.get(), data})
   end
 
-  def wait_session do
+  def wait_session(io_pid) do
     receive do
       {:session, %{state: "approved"} = _session, _} ->
-        send(self(), :start_record)
+        send(io_pid, :start_record)
 
       {:session, %{state: "requested"}, counter} ->
         Cased.CLI.Shell.progress("Approval request sent#{String.duplicate(".", counter)}")
-        wait_session()
+        wait_session(io_pid)
 
       {:error, %{state: "denied"}, _} ->
         IO.write("\n")
@@ -77,24 +77,26 @@ defmodule Cased.CLI.Session do
       {:error, %{state: "timed_out"}, _} ->
         IO.write("\n")
         Cased.CLI.Shell.error("CLI session has timed out")
+        :init.stop()
 
       {:error, %{state: "canceled"}, _} ->
         IO.write("\n")
         Cased.CLI.Shell.error("CLI session has been canceled")
+        :init.stop()
 
       {:error, "reason_required", _session} ->
         reason = Cased.CLI.Shell.prompt("Please enter a reason for access")
-        send(self(), {:start_session, %{reason: reason}})
+        send(io_pid, {:start_session, %{reason: reason}})
 
       {:error, "authenticate", _session} ->
-        send(self(), :authenticate)
+        send(io_pid, :authenticate)
 
       {:error, "reauthenticate", _session} ->
         Cased.CLI.Shell.error(
           "You must re-authenticate with Cased due to recent changes to this application's settings."
         )
 
-        send(self(), :reauthenticate)
+        send(io_pid, :reauthenticate)
 
       {:error, "unauthorized", _session} ->
         Cased.CLI.Shell.error("CLI session has error: unauthorized")
@@ -103,7 +105,7 @@ defmodule Cased.CLI.Session do
           Cased.CLI.Shell.error("Existing credentials are not valid.")
         end
 
-        send(self(), :unauthorized)
+        send(io_pid, :unauthorized)
 
       {:error, error, _session} ->
         IO.write("\n")
@@ -112,6 +114,7 @@ defmodule Cased.CLI.Session do
       50_000 ->
         IO.write("\n")
         Cased.CLI.Shell.error("Could not start CLI session.")
+        :init.stop()
     end
   end
 
@@ -186,6 +189,13 @@ defmodule Cased.CLI.Session do
       {:error, error} ->
         send(console_pid, {:error, error, state})
         {:noreply, state}
+
+      _ ->
+        {:noreply, state}
     end
+  end
+
+  def handle_info(_msg, state) do
+    {:noreply, state}
   end
 end

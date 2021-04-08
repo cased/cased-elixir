@@ -42,7 +42,7 @@ defmodule Cased.CLI do
   defp do_start() do
     Shell.info("Running under Cased CLI.")
 
-    Session.create()
+    Session.create(self())
     loop()
   end
 
@@ -62,11 +62,11 @@ defmodule Cased.CLI do
         loop()
 
       :start_session ->
-        Session.create()
+        Session.create(self())
         loop()
 
       {:start_session, attrs} ->
-        Session.create(attrs)
+        Session.create(self(), attrs)
         loop()
 
       :start_record ->

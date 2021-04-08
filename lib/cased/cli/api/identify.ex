@@ -1,6 +1,8 @@
 defmodule Cased.CLI.Api.Identity do
   @moduledoc "Identity"
 
+  alias Cased.CLI.Config
+
   @request_timeout 15_000
 
   def identify() do
@@ -24,10 +26,10 @@ defmodule Cased.CLI.Api.Identity do
   end
 
   defp identify_url() do
-    Cased.CLI.Config.api_endpoint() <> "/cli/applications/users/identify"
+    Config.api_endpoint() <> "/cli/applications/users/identify"
   end
 
   defp build_headers() do
-    [{"Accept", "application/json"} | Cased.Headers.create(Cased.CLI.Config.get(:app_key, ""))]
+    [{"Accept", "application/json"} | Cased.Headers.create(Config.app_key())]
   end
 end

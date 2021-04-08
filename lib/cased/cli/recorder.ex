@@ -30,7 +30,10 @@ defmodule Cased.CLI.Recorder do
       original_prompt: IEx.configuration()[:default_prompt]
     }
 
-    setup_shell()
+    Cased.CLI.Runner.execute_in_shell(
+      "import(Cased.CLI, only: [stop: 0]);IEx.dont_display_result()"
+    )
+
     GenServer.call(__MODULE__, {:start, meta})
 
     IEx.configure(
@@ -45,18 +48,6 @@ defmodule Cased.CLI.Recorder do
     IEx.dont_display_result()
     GenServer.call(__MODULE__, {:start, meta})
     IEx.dont_display_result()
-  end
-
-  defp setup_shell do
-    with sev_pid when is_pid(sev_pid) <- IEx.Broker.shell(),
-         {_, dict} <- Process.info(sev_pid, :dictionary),
-         eval_pid when is_pid(eval_pid) <- Keyword.get(dict, :evaluator) do
-      send(
-        eval_pid,
-        {:eval, sev_pid, "import(Cased.CLI, only: [stop: 0]);IEx.dont_display_result()",
-         %IEx.State{}}
-      )
-    end
   end
 
   def start_link(opts \\ []) do
