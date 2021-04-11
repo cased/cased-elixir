@@ -85,8 +85,8 @@ defmodule Cased.CLI.Config do
   def valid_app_key(_key), do: false
 
   @doc false
-  @spec configure(map()) :: map()
-  def configure(opts) do
+  @spec configure(map()) :: :ok
+  def configure(%{} = opts) do
     Agent.update(__MODULE__, __MODULE__, :handle_configure, [opts])
   end
 

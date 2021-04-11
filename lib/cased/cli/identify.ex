@@ -5,8 +5,11 @@ defmodule Cased.CLI.Identity do
 
   use GenServer
 
+  alias __MODULE__.State
   alias Cased.CLI.Api
   alias Cased.CLI.Config
+  alias Cased.CLI.Runner
+  alias Cased.CLI.Shell
 
   @poll_timer 1_000
 
@@ -19,7 +22,7 @@ defmodule Cased.CLI.Identity do
               user: nil,
               ip_address: nil
 
-    @type t :: __MODULE__
+    @type t :: %__MODULE__{}
   end
 
   ## Client API
@@ -40,11 +43,13 @@ defmodule Cased.CLI.Identity do
   end
 
   @doc "Get current identity"
-  @spec get() :: Cased.CLI.Identity.State.t()
+  @spec get() :: State.t()
   def get do
     GenServer.call(__MODULE__, :get)
   end
 
+  @doc "Reset state identity before reauthenticate"
+  @spec reset() :: State.t()
   def reset do
     GenServer.call(__MODULE__, :reset)
   end
@@ -56,26 +61,26 @@ defmodule Cased.CLI.Identity do
   def wait_identify do
     receive do
       {:identify_init, url} ->
-        Cased.CLI.Shell.info("To login, please visit:")
-        Cased.CLI.Shell.info(url)
+        Shell.info("To login, please visit:")
+        Shell.info(url)
         wait_identify()
 
       :identify_done ->
         IO.write("\r")
-        Cased.CLI.Shell.info("Identify is complete")
-        Cased.CLI.Shell.info("Start cli session. ")
+        Shell.info("Identify is complete")
+        Shell.info("Start cli session. ")
         send(self(), :start_session)
 
       {:identify_retry, count} ->
-        Cased.CLI.Shell.progress("#{String.duplicate(".", count)}")
+        Shell.progress("#{String.duplicate(".", count)}")
         wait_identify()
 
       {:error, error} ->
-        Cased.CLI.Shell.info("Identify is fail. (#{inspect(error)}) ")
+        Shell.info("Identify is fail. (#{inspect(error)}) ")
     after
       50_000 ->
         IO.write("\n")
-        Cased.CLI.Shell.info("Identify is't complete")
+        Shell.info("Identify is't complete")
     end
   end
 
@@ -88,7 +93,7 @@ defmodule Cased.CLI.Identity do
         token -> %{user: %{"id" => token}}
       end
 
-    Cased.CLI.Runner.started(:identify)
+    Runner.started(:identify)
     {:ok, State.__struct__(opts)}
   end
 

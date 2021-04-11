@@ -2,6 +2,7 @@ defmodule Cased.CLI.Asciinema.File do
   @moduledoc false
   @version 2
 
+  @spec build(Cased.CLI.Recorder.State.t()) :: binary()
   def build(%{events: events} = record) do
     json_events =
       events
@@ -13,11 +14,11 @@ defmodule Cased.CLI.Asciinema.File do
     IO.iodata_to_binary([build_header(record) <> "\n" | json_events])
   end
 
-  def build_event({_event_at, ts, event_data} = _event) do
+  defp build_event({_event_at, ts, event_data} = _event) do
     Jason.encode!([ts, "o", event_data])
   end
 
-  def build_header(%{meta: meta, started_at: started_at} = record) do
+  defp build_header(%{meta: meta, started_at: started_at} = record) do
     %{
       version: @version,
       env: %{

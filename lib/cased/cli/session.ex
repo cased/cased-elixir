@@ -6,6 +6,7 @@ defmodule Cased.CLI.Session do
   @poll_timer 1_000
 
   alias Cased.CLI.Api
+  alias Cased.CLI.Identity
 
   defmodule State do
     @moduledoc false
@@ -53,12 +54,12 @@ defmodule Cased.CLI.Session do
   end
 
   def create(io_pid, attrs \\ %{}) do
-    GenServer.cast(__MODULE__, {:create, io_pid, Cased.CLI.Identity.get(), attrs})
+    GenServer.cast(__MODULE__, {:create, io_pid, Identity.get(), attrs})
     wait_session(io_pid)
   end
 
   def upload_record(data) do
-    GenServer.call(__MODULE__, {:save_record, Cased.CLI.Identity.get(), data})
+    GenServer.call(__MODULE__, {:save_record, Identity.get(), data})
   end
 
   def wait_session(io_pid) do
@@ -189,9 +190,6 @@ defmodule Cased.CLI.Session do
 
       {:error, error} ->
         send(console_pid, {:error, error, state})
-        {:noreply, state}
-
-      _ ->
         {:noreply, state}
     end
   end

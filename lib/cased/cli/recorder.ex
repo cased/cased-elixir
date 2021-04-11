@@ -3,8 +3,25 @@ defmodule Cased.CLI.Recorder do
 
   use GenServer, shutdown: 30_000
 
+  alias __MODULE__.State
   alias Cased.CLI.Config
   alias Cased.CLI.Shell
+
+  defmodule State do
+    @moduledoc false
+    defstruct uploading: false,
+              uploader_pid: nil,
+              record: false,
+              started_at: nil,
+              finished_at: nil,
+              meta: %{},
+              events: [],
+              buf: "",
+              cursor_position: 0,
+              config: %{}
+
+    @type t :: %__MODULE__{}
+  end
 
   def stop_record do
     GenServer.call(__MODULE__, :stop)
@@ -39,10 +56,14 @@ defmodule Cased.CLI.Recorder do
     IEx.configure(default_prompt: prefix <> Config.get(:iex_prompt))
 
     IO.write("\n")
-    Shell.info("Start record.")
 
-    Shell.info("usage `stop` to close session .")
+    Shell.info("""
+    Start record.
+    usage `stop` to close session .
+    """)
+
     IEx.dont_display_result()
+
     GenServer.call(__MODULE__, {:start, meta, config})
     IEx.dont_display_result()
 
@@ -63,21 +84,7 @@ defmodule Cased.CLI.Recorder do
 
   def init(_opts) do
     Process.flag(:trap_exit, true)
-
-    {:ok,
-     %{
-       uploading: false,
-       uploader_pid: nil,
-       record: false,
-       started_at: nil,
-       finished_at: nil,
-       meta: %{},
-       events: [],
-       raw_events: [],
-       buf: "",
-       cursor_position: 0,
-       config: %{}
-     }}
+    {:ok, %State{}}
   end
 
   def handle_call(:get, _from, state) do
@@ -112,12 +119,12 @@ defmodule Cased.CLI.Recorder do
 
   def handle_info(:upload, %{uploading: false, record: true, events: [_ | _]} = state) do
     uploader_pid = spawn(fn -> upload() end)
-    do_autoupload(self(), state[:config])
+    do_autoupload(self(), state.config)
     {:noreply, %{state | uploading: true, uploader_pid: uploader_pid}}
   end
 
-  def handle_info(:upload, %{record: true} = state) do
-    do_autoupload(self(), state[:config])
+  def handle_info(:upload, %{record: true, config: config} = state) do
+    do_autoupload(self(), config)
     {:noreply, state}
   end
 
@@ -128,10 +135,10 @@ defmodule Cased.CLI.Recorder do
   end
 
   def handle_info({:trace_ts, _, :receive, {_, {:requests, [_ | _] = events}}, ts} = _msg, state) do
-    buf = state[:buf]
+    buf = state.buf
 
     {event_data, buf, cursor_position} =
-      Enum.reduce(events, {[], buf, state[:cursor_position]}, fn
+      Enum.reduce(events, {[], buf, state.cursor_position}, fn
         {:move_rel, 0}, {acc, buf, pos} ->
           {[IO.ANSI.cursor_left(1) | acc], buf, pos - 1}
 

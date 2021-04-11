@@ -7,6 +7,7 @@ defmodule Cased.CLI.Supervisor do
     Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
+  @spec init(keyword()) :: no_return
   def init(args) do
     children = [
       {Cased.CLI.Runner, args},
