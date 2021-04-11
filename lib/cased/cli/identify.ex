@@ -117,7 +117,7 @@ defmodule Cased.CLI.Identity do
 
   @impl true
   def handle_cast({:identify, console_pid}, state) do
-    case Api.Identity.identify() do
+    case Api.Identity.identify(Config.configuration()) do
       {:ok, %{"url" => url, "code" => code, "api_url" => api_url}} ->
         new_state = %{state | url: url, code: code, api_url: api_url}
         send(console_pid, {:identify_init, url})
@@ -133,7 +133,7 @@ defmodule Cased.CLI.Identity do
   @impl true
   def handle_info({:check, console_pid, count}, state) do
     new_state =
-      case Api.Identity.check(state) do
+      case Api.Identity.check(Config.configuration(), state) do
         {:ok, %{"id" => id, "user" => user, "ip_address" => ip_address}} ->
           send(console_pid, :identify_done)
           %{state | id: id, user: user, ip_address: ip_address}

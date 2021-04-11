@@ -6,6 +6,7 @@ defmodule Cased.CLI.Session do
   @poll_timer 1_000
 
   alias Cased.CLI.Api
+  alias Cased.CLI.Config
   alias Cased.CLI.Identity
 
   defmodule State do
@@ -133,7 +134,7 @@ defmodule Cased.CLI.Session do
 
   @impl true
   def handle_call({:save_record, identity, data}, _from, state) do
-    Api.Session.put_record(state, identity, data)
+    Api.Session.put_record(Config.configuration(), state, identity, data)
     {:reply, state, state}
   end
 
@@ -146,7 +147,7 @@ defmodule Cased.CLI.Session do
 
   @impl true
   def handle_cast({:create, console_pid, identity, attrs}, state) do
-    case Api.Session.create(identity, attrs) do
+    case Api.Session.create(Config.configuration(), identity, attrs) do
       {:ok, session} ->
         new_state = State.from_session(state, session)
 
@@ -168,7 +169,7 @@ defmodule Cased.CLI.Session do
 
   @impl true
   def handle_info({:wait_approval, console_pid, identify, counter}, %{id: id} = state) do
-    case Api.Session.retrive(identify, id) do
+    case Api.Session.retrive(Config.configuration(), identify, id) do
       {:ok, session} ->
         new_state = State.from_session(state, session)
 

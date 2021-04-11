@@ -9,6 +9,7 @@ defmodule Cased.CLI.Config do
 
   @api_endpoint "https://api.cased.com"
   @credentials_keys [:token, :app_key]
+
   @autoupload true
   @autoupload_timer 5_000
 
@@ -19,6 +20,16 @@ defmodule Cased.CLI.Config do
     :autoupload,
     :autoupload_timer
   ]
+
+  @type t :: %{
+          required(:api_endpoint) => String.t(),
+          required(:app_key) => String.t(),
+          optional(:token) => String.t(),
+          :clear_screen => boolean(),
+          :autorun => boolean(),
+          :autoupload => boolean(),
+          :autoupload_timer => pos_integer()
+        }
 
   @doc """
   **Required**
