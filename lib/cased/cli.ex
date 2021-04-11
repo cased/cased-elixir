@@ -20,6 +20,12 @@ defmodule Cased.CLI do
   """
   def start(leader \\ nil) do
     if leader, do: Process.group_leader(self(), leader)
+    Config.configure(%{iex_prompt: IEx.configuration()[:default_prompt]})
+
+    if Config.autorun() do
+      IEx.configure(default_prompt: "")
+    end
+
     if Config.clear_screen(), do: IO.write(IO.ANSI.clear() <> IO.ANSI.home())
 
     case Config.valid_app_key() do

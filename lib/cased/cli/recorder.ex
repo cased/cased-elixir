@@ -3,6 +3,9 @@ defmodule Cased.CLI.Recorder do
 
   use GenServer, shutdown: 30_000
 
+  alias Cased.CLI.Shell
+  alias Cased.CLI.Config
+
   def stop_record() do
     GenServer.call(__MODULE__, :stop)
     do_upload()
@@ -25,26 +28,33 @@ defmodule Cased.CLI.Recorder do
       rows: rows,
       columns: columns,
       command: progname,
-      arguments: :init.get_plain_arguments(),
-      original_prompt: IEx.configuration()[:default_prompt]
+      arguments: :init.get_plain_arguments()
     }
 
     Cased.CLI.Runner.execute_in_shell(
       "import(Cased.CLI, only: [stop: 0]);IEx.dont_display_result()"
     )
 
-    IEx.configure(
-      default_prompt:
-        IO.ANSI.green() <> "(cased)" <> IO.ANSI.reset() <> IEx.configuration()[:default_prompt]
-    )
+    prefix = IO.ANSI.green() <> "(cased)" <> IO.ANSI.reset()
+    IEx.configure(default_prompt: prefix <> Config.get(:iex_prompt))
 
     IO.write("\n")
-    Cased.CLI.Shell.info("Start record.")
+    Shell.info("Start record.")
 
-    Cased.CLI.Shell.info("usage `stop` to close session .")
+    Shell.info("usage `stop` to close session .")
     IEx.dont_display_result()
     GenServer.call(__MODULE__, {:start, meta, config})
     IEx.dont_display_result()
+
+    if Config.autorun() do
+      prompt =
+        Config.get(:iex_prompt, "%prefix(%counter)>")
+        |> String.replace("%counter", "1")
+        |> String.replace("%prefix", "iex")
+        |> String.replace("%node", "")
+
+      IO.write(prefix <> " " <> prompt)
+    end
   end
 
   def start_link(opts \\ []) do
@@ -133,6 +143,9 @@ defmodule Cased.CLI.Recorder do
 
         {:delete_chars, 0}, {acc, buf, pos} ->
           {[IO.ANSI.cursor_left(1) <> "\e[2K" | acc], buf, pos - 1}
+
+        {:delete_chars, _n}, {acc, "", pos} ->
+          {acc, "", pos}
 
         {:delete_chars, n}, {acc, buf, pos} ->
           length_buf = String.length(buf)
