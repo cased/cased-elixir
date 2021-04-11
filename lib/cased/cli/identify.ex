@@ -11,6 +11,7 @@ defmodule Cased.CLI.Identity do
   @poll_timer 1_000
 
   defmodule State do
+    @moduledoc false
     defstruct api_url: nil,
               code: nil,
               url: nil,
@@ -23,7 +24,7 @@ defmodule Cased.CLI.Identity do
 
   ## Client API
 
-  def start() do
+  def start do
     case Process.whereis(__MODULE__) do
       nil -> start_link([])
       pid -> {:ok, pid}
@@ -33,7 +34,7 @@ defmodule Cased.CLI.Identity do
   @doc """
   Start user identify and wait result.
   """
-  def identify() do
+  def identify do
     GenServer.cast(__MODULE__, {:identify, self()})
     wait_identify()
   end

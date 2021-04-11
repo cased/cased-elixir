@@ -55,7 +55,7 @@ defmodule Cased.CLI.Runner do
 
   def do_run(_), do: :ok
 
-  def run() do
+  def run do
     if is_pid(IEx.Broker.shell()) do
       {:group_leader, gl} = Process.info(IEx.Broker.shell(), :group_leader)
       Cased.CLI.start(gl)

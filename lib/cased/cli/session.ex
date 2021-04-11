@@ -8,6 +8,7 @@ defmodule Cased.CLI.Session do
   alias Cased.CLI.Api
 
   defmodule State do
+    @moduledoc false
     defstruct id: nil,
               url: nil,
               api_url: nil,
@@ -36,7 +37,7 @@ defmodule Cased.CLI.Session do
 
   ## Client API
 
-  def start() do
+  def start do
     case Process.whereis(__MODULE__) do
       nil -> start_link()
       pid -> {:ok, pid}

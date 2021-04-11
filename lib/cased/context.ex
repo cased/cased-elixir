@@ -24,7 +24,7 @@ defmodule Cased.Context do
   %{location: "https://example.com"}
   """
   @spec to_map() :: map()
-  def to_map() do
+  def to_map do
     get_stack()
     |> List.foldl(%{}, &DeepMerge.deep_merge/2)
   end
@@ -162,7 +162,7 @@ defmodule Cased.Context do
   ```
   """
   @spec reset() :: nil | :ok
-  def reset() do
+  def reset do
     case Process.delete(@process_dict_key) do
       nil ->
         nil
@@ -194,7 +194,7 @@ defmodule Cased.Context do
 
   @doc false
   @spec stack_size() :: non_neg_integer()
-  def stack_size() do
+  def stack_size do
     get_stack()
     |> length()
   end
@@ -206,7 +206,7 @@ defmodule Cased.Context do
   end
 
   @spec get_stack() :: stack()
-  defp get_stack() do
+  defp get_stack do
     Process.get(@process_dict_key, [])
   end
 
@@ -216,7 +216,7 @@ defmodule Cased.Context do
   end
 
   @spec pop_stack() :: nil | map()
-  defp pop_stack() do
+  defp pop_stack do
     get_stack()
     |> tl()
     |> put_stack()

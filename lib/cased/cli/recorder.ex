@@ -3,10 +3,10 @@ defmodule Cased.CLI.Recorder do
 
   use GenServer, shutdown: 30_000
 
-  alias Cased.CLI.Shell
   alias Cased.CLI.Config
+  alias Cased.CLI.Shell
 
-  def stop_record() do
+  def stop_record do
     GenServer.call(__MODULE__, :stop)
     do_upload()
 
@@ -229,7 +229,7 @@ defmodule Cased.CLI.Recorder do
     end
   end
 
-  defp upload() do
+  defp upload do
     do_upload()
     send(Process.whereis(__MODULE__), :uploaded)
   end

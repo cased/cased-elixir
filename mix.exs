@@ -15,6 +15,7 @@ defmodule Cased.MixProject do
         extras: ["README.md"]
       ],
       dialyzer: dialyzer(),
+      aliases: aliases(),
       elixirc_paths: elixirc_paths(Mix.env())
     ]
   end
@@ -37,9 +38,8 @@ defmodule Cased.MixProject do
       {:norm, "~> 0.12"},
       {:plug, "~> 1.10.3"},
       {:deep_merge, "~> 1.0.0"},
-      {:mock, "~> 0.3.6", only: :test}
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
+      {:mock, "~> 0.3.6", only: :test},
+      {:credo, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
 
@@ -47,6 +47,12 @@ defmodule Cased.MixProject do
     [
       plt_add_apps: [:mix, :ex_unit],
       check_plt: true
+    ]
+  end
+
+  defp aliases do
+    [
+      analyze: ["credo --strict --only=warnings,todo,fixme,consistency,readability"]
     ]
   end
 

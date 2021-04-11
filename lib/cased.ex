@@ -149,7 +149,7 @@ defmodule Cased do
     |> conform(publish_opts_schema())
   end
 
-  defp publish_opts_schema() do
+  defp publish_opts_schema do
     schema(%{
       # Effectively [GenServer.server()]
       publishers: coll_of(spec(is_pid() or is_atom() or is_tuple())),

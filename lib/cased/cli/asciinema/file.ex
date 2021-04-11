@@ -1,4 +1,5 @@
 defmodule Cased.CLI.Asciinema.File do
+  @moduledoc false
   @version 2
 
   def build(%{events: events} = record) do

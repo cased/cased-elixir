@@ -68,9 +68,7 @@ defmodule Cased.CLI.Config do
 
   @doc "Returns all configurations"
   @spec configuration() :: map()
-  def configuration() do
-    Agent.get(__MODULE__, & &1)
-  end
+  def configuration, do: Agent.get(__MODULE__, & &1)
 
   @spec get(atom(), any()) :: any()
   def get(key, default \\ nil) do

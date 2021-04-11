@@ -75,9 +75,9 @@ defmodule Cased.CLI.Api.Session do
     )
   end
 
-  defp api_endpoint(), do: Config.api_endpoint()
+  defp api_endpoint, do: Config.api_endpoint()
 
-  defp build_headers() do
+  defp build_headers do
     [{"Accept", "application/json"} | Cased.Headers.create(Config.app_key())]
   end
 end

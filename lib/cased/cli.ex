@@ -9,11 +9,11 @@ defmodule Cased.CLI do
   * run record
   """
 
-  alias Cased.CLI.Shell
-  alias Cased.CLI.Session
   alias Cased.CLI.Config
   alias Cased.CLI.Identity
   alias Cased.CLI.Recorder
+  alias Cased.CLI.Session
+  alias Cased.CLI.Shell
 
   @doc """
   Starts session.
@@ -47,7 +47,7 @@ defmodule Cased.CLI do
     Cased.CLI.Recorder.stop_record()
   end
 
-  defp do_start() do
+  defp do_start do
     Shell.info("Running under Cased CLI.")
 
     Session.create(self())
