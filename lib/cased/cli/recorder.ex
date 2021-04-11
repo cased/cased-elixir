@@ -1,8 +1,7 @@
 defmodule Cased.CLI.Recorder do
   @moduledoc false
-  use GenServer, shutdown: 30_000
 
-  @upload_timer 5_000
+  use GenServer, shutdown: 30_000
 
   def stop_record() do
     GenServer.call(__MODULE__, :stop)
@@ -15,7 +14,7 @@ defmodule Cased.CLI.Recorder do
     GenServer.call(__MODULE__, :get)
   end
 
-  def start_record do
+  def start_record(config) do
     {_, rows} = :io.rows()
     {_, columns} = :io.columns()
     {_, [progname]} = :init.get_argument(:progname)
@@ -34,8 +33,6 @@ defmodule Cased.CLI.Recorder do
       "import(Cased.CLI, only: [stop: 0]);IEx.dont_display_result()"
     )
 
-    GenServer.call(__MODULE__, {:start, meta})
-
     IEx.configure(
       default_prompt:
         IO.ANSI.green() <> "(cased)" <> IO.ANSI.reset() <> IEx.configuration()[:default_prompt]
@@ -46,7 +43,7 @@ defmodule Cased.CLI.Recorder do
 
     Cased.CLI.Shell.info("usage `stop` to close session .")
     IEx.dont_display_result()
-    GenServer.call(__MODULE__, {:start, meta})
+    GenServer.call(__MODULE__, {:start, meta, config})
     IEx.dont_display_result()
   end
 
@@ -68,7 +65,8 @@ defmodule Cased.CLI.Recorder do
        events: [],
        raw_events: [],
        buf: "",
-       cursor_position: 0
+       cursor_position: 0,
+       config: %{}
      }}
   end
 
@@ -81,16 +79,17 @@ defmodule Cased.CLI.Recorder do
     {:reply, state, state}
   end
 
-  def handle_call({:start, meta}, _from, state) do
+  def handle_call({:start, meta, config}, _from, state) do
     new_state = %{
       state
       | record: true,
         meta: meta,
         events: [],
-        started_at: DateTime.now!("Etc/UTC")
+        started_at: DateTime.now!("Etc/UTC"),
+        config: config
     }
 
-    Process.send_after(self(), :upload, @upload_timer)
+    do_autoupload(self(), config)
 
     :erlang.trace(
       Process.whereis(:user_drv),
@@ -103,12 +102,12 @@ defmodule Cased.CLI.Recorder do
 
   def handle_info(:upload, %{uploading: false, record: true, events: [_ | _]} = state) do
     uploader_pid = spawn(fn -> upload() end)
-    Process.send_after(self(), :upload, @upload_timer)
+    do_autoupload(self(), state[:config])
     {:noreply, %{state | uploading: true, uploader_pid: uploader_pid}}
   end
 
   def handle_info(:upload, %{record: true} = state) do
-    Process.send_after(self(), :upload, @upload_timer)
+    do_autoupload(self(), state[:config])
     {:noreply, state}
   end
 
@@ -221,4 +220,10 @@ defmodule Cased.CLI.Recorder do
     do_upload()
     send(Process.whereis(__MODULE__), :uploaded)
   end
+
+  defp do_autoupload(pid, %{autoupload: true, autoupload_timer: timer}) do
+    Process.send_after(pid, :upload, timer)
+  end
+
+  defp do_autoupload(_pid, _config), do: :ok
 end

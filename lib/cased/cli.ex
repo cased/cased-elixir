@@ -72,7 +72,7 @@ defmodule Cased.CLI do
         loop()
 
       :start_record ->
-        Recorder.start_record()
+        Recorder.start_record(Config.configuration())
 
       :stopped_record ->
         Shell.info("record stoped")

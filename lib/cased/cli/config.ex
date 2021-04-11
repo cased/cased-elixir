@@ -9,7 +9,16 @@ defmodule Cased.CLI.Config do
 
   @api_endpoint "https://api.cased.com"
   @credentials_keys [:token, :app_key]
-  @config_keys [:clear_screen, :api_endpoint, :autorun]
+  @autoupload true
+  @autoupload_timer 5_000
+
+  @config_keys [
+    :clear_screen,
+    :api_endpoint,
+    :autorun,
+    :autoupload,
+    :autoupload_timer
+  ]
 
   @doc """
   **Required**
@@ -50,6 +59,12 @@ defmodule Cased.CLI.Config do
   """
   @spec autorun() :: boolean()
   def autorun, do: get(:autorun, false)
+
+  @spec autoupload() :: boolean()
+  def autoupload, do: get(:autoupload)
+
+  @spec autoupload_timer() :: integer()
+  def autoupload_timer, do: get(:autoupload_timer)
 
   @doc "Returns all configurations"
   @spec configuration() :: map()
@@ -127,6 +142,8 @@ defmodule Cased.CLI.Config do
   defp load_default(opts) do
     opts
     |> Map.put_new(:api_endpoint, @api_endpoint)
+    |> Map.put_new(:autoupload, @autoupload)
+    |> Map.put_new(:autoupload_timer, @autoupload_timer)
     |> Map.put_new(:clear_screen, false)
   end
 
