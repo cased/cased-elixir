@@ -18,6 +18,7 @@ defmodule Cased.CLI do
   @doc """
   Starts session.
   """
+  @spec start(pid | nil) :: no_return
   def start(leader \\ nil) do
     if leader, do: Process.group_leader(self(), leader)
     Config.configure(%{iex_prompt: IEx.configuration()[:default_prompt]})
