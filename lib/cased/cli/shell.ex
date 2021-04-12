@@ -1,5 +1,5 @@
 defmodule Cased.CLI.Shell do
-  @moduledoc false
+  @moduledoc "Represents shell helpers. likes `info`, `error`, `progress`"
 
   @prefix "#{IO.ANSI.yellow()}[cased]#{IO.ANSI.reset()} "
   @error_prefix "#{IO.ANSI.red()}[cased]#{IO.ANSI.reset()} "

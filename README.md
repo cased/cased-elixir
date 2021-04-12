@@ -219,11 +219,21 @@ In order for the session to automatically run at the start the  console, add `C
   end
 ```
 
-Available params of `Cased.CLI`:
+Available options of `Cased.CLI`:
 
 - `app_key` - application key (required)
 - `token` - user token (option)
+- `api_endpoint` - api url. default is "https://api.cased.com"
 - `clear_screen` - clear screen before start. default is false
+- `autorun` - boolean, start CLI session on start application. (if IEx loaded). default is false
+- `autoupload` - boolean, turn on\off autoupload record to server. default is true
+- `autoupload_timer` - timer autoupload. default is 5 s.
+
+
+All options can be configured in two ways:
+
+- Environment variables: `autoupload=true autoupload_timer=1000`
+- Application config: `config :cased, autoupload: true, autoupload_timer: 1000`
 
 ## Usage
 

@@ -1,13 +1,17 @@
 defmodule Cased.CLI.Asciinema.File do
-  @moduledoc false
+  @moduledoc """
+  Build Asci data.
+  # Spec: https://github.com/asciinema/asciinema/blob/develop/doc/asciicast-v2.md
+  """
+
   @version 2
 
   @spec build(Cased.CLI.Recorder.State.t()) :: binary()
   def build(%{events: events} = record) do
     json_events =
       events
-      |> Enum.reduce(:first, fn
-        event, :first -> [build_event(event)]
+      |> Enum.reduce("", fn
+        event, "" -> [build_event(event)]
         event, acc -> [build_event(event) <> "\n" | acc]
       end)
 
@@ -22,13 +26,13 @@ defmodule Cased.CLI.Asciinema.File do
     %{
       version: @version,
       env: %{
-        SHELL: Map.get(meta, :shell),
-        TERM: Map.get(meta, :term)
+        SHELL: Map.get(meta, :shell, ""),
+        TERM: Map.get(meta, :term, "")
       },
       width: Map.get(meta, :columns, 80),
       height: Map.get(meta, :rows, 24),
-      command: IO.iodata_to_binary(Map.get(meta, :command)),
-      timestamp: DateTime.to_unix(started_at)
+      command: IO.iodata_to_binary(Map.get(meta, :command, "")),
+      timestamp: timestamp(started_at)
     }
     |> maybe_add_duration(record)
     |> Jason.encode!()
@@ -41,4 +45,7 @@ defmodule Cased.CLI.Asciinema.File do
   end
 
   defp maybe_add_duration(headers, _record), do: headers
+
+  defp timestamp(nil), do: DateTime.to_unix(DateTime.now!("Etc/UTC"))
+  defp timestamp(ts), do: DateTime.to_unix(ts)
 end

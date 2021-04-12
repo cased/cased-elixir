@@ -1,5 +1,7 @@
 defmodule Cased.CLI.Session do
-  @moduledoc false
+  @moduledoc """
+  The module represents functions to create
+  """
 
   use GenServer
 
@@ -9,8 +11,12 @@ defmodule Cased.CLI.Session do
   alias Cased.CLI.Config
   alias Cased.CLI.Identity
 
+  @type session_attrs :: %{
+          optional(:reason) => String.t()
+        }
   defmodule State do
     @moduledoc false
+
     defstruct id: nil,
               url: nil,
               api_url: nil,
@@ -20,6 +26,8 @@ defmodule Cased.CLI.Session do
               reason: nil,
               command: nil,
               guard_application: nil
+
+    @type t :: %__MODULE__{}
 
     def from_session(state, session) do
       %{
@@ -50,15 +58,21 @@ defmodule Cased.CLI.Session do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
+  @doc "Gets current session"
+  @spec get() :: Cased.CLI.Session.State.t()
   def get do
     GenServer.call(__MODULE__, :get)
   end
 
+  @doc "Initial new session and waiting result"
+  @spec create(pid(), session_attrs()) :: no_return
   def create(io_pid, attrs \\ %{}) do
     GenServer.cast(__MODULE__, {:create, io_pid, Identity.get(), attrs})
     wait_session(io_pid)
   end
 
+  @doc "Upload current record to current session store"
+  @spec upload_record(binary) :: Cased.CLI.Session.State.t()
   def upload_record(data) do
     GenServer.call(__MODULE__, {:save_record, Identity.get(), data})
   end
