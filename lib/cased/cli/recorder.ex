@@ -4,14 +4,12 @@ defmodule Cased.CLI.Recorder do
   use GenServer, shutdown: 30_000
 
   alias __MODULE__.State
-  alias Cased.CLI.Config
-  alias Cased.CLI.Shell
+  alias Cased.CLI.HiddenNode
+  alias Cased.CLI.Asciinema
 
   defmodule State do
     @moduledoc false
-    defstruct uploading: false,
-              uploader_pid: nil,
-              record: false,
+    defstruct record: false,
               started_at: nil,
               finished_at: nil,
               meta: %{},
@@ -25,8 +23,6 @@ defmodule Cased.CLI.Recorder do
 
   def stop_record do
     GenServer.call(__MODULE__, :stop)
-    do_upload()
-
     :init.stop()
   end
 
@@ -34,7 +30,7 @@ defmodule Cased.CLI.Recorder do
     GenServer.call(__MODULE__, :get)
   end
 
-  def start_record(config) do
+  def start_record() do
     {_, rows} = :io.rows()
     {_, columns} = :io.columns()
     {_, [progname]} = :init.get_argument(:progname)
@@ -48,34 +44,12 @@ defmodule Cased.CLI.Recorder do
       arguments: :init.get_plain_arguments()
     }
 
-    Cased.CLI.Runner.execute_in_shell(
-      "import(Cased.CLI, only: [stop: 0]);IEx.dont_display_result()"
-    )
-
     prefix = IO.ANSI.green() <> "(cased)" <> IO.ANSI.reset()
-    IEx.configure(default_prompt: prefix <> Config.get(:iex_prompt))
+    IEx.configure(default_prompt: prefix <> "%prefix(%counter)>")
 
     IO.write("\n")
-
-    Shell.info("""
-    Start record.
-    usage `stop` to close session .
-    """)
-
+    GenServer.call(__MODULE__, {:start, meta, %{}})
     IEx.dont_display_result()
-
-    GenServer.call(__MODULE__, {:start, meta, config})
-    IEx.dont_display_result()
-
-    if Config.autorun() do
-      prompt =
-        Config.get(:iex_prompt, "%prefix(%counter)>")
-        |> String.replace("%counter", "1")
-        |> String.replace("%prefix", "iex")
-        |> String.replace("%node", "")
-
-      IO.write(prefix <> " " <> prompt)
-    end
   end
 
   def start_link(opts \\ []) do
@@ -106,7 +80,7 @@ defmodule Cased.CLI.Recorder do
         config: config
     }
 
-    do_autoupload(self(), config)
+    send_header(new_state)
 
     :erlang.trace(
       Process.whereis(:user_drv),
@@ -115,23 +89,6 @@ defmodule Cased.CLI.Recorder do
     )
 
     {:reply, new_state, new_state}
-  end
-
-  def handle_info(:upload, %{uploading: false, record: true, events: [_ | _]} = state) do
-    uploader_pid = spawn(fn -> upload() end)
-    do_autoupload(self(), state.config)
-    {:noreply, %{state | uploading: true, uploader_pid: uploader_pid}}
-  end
-
-  def handle_info(:upload, %{record: true, config: config} = state) do
-    do_autoupload(self(), config)
-    {:noreply, state}
-  end
-
-  def handle_info(:upload, state), do: {:noreply, state}
-
-  def handle_info(:uploaded, state) do
-    {:noreply, %{state | uploading: false, uploader_pid: nil}}
   end
 
   def handle_info({:trace_ts, _, :receive, {_, {:requests, [_ | _] = events}}, ts} = _msg, state) do
@@ -182,18 +139,23 @@ defmodule Cased.CLI.Recorder do
       |> Enum.reverse()
       |> Enum.join()
 
-    new_state =
-      %{state | buf: buf, cursor_position: cursor_position}
-      |> add_event(ts, event_data)
+    event = event_item(state, ts, event_data)
 
+    new_state = %{
+      state
+      | buf: buf,
+        cursor_position: cursor_position,
+        events: [event | state.events]
+    }
+
+    send_event(event)
     {:noreply, new_state}
   end
 
   def handle_info({:trace_ts, _, _, {_, {:put_chars_sync, :unicode, data, _}}, ts} = _msg, state) do
-    new_state =
-      %{state | buf: "", cursor_position: 0}
-      |> add_event(ts, data)
-
+    event = event_item(state, ts, data)
+    new_state = %{state | buf: "", cursor_position: 0, events: [event | state.events]}
+    send_event(event)
     {:noreply, new_state}
   end
 
@@ -201,14 +163,22 @@ defmodule Cased.CLI.Recorder do
     {:noreply, state}
   end
 
-  def terminate(_reason, state) do
+  def terminate(_reason, _state) do
     :erlang.trace(:all, false, [:all])
-    Cased.CLI.Shell.info("Close `Cased` session.")
-    do_upload(state)
     :normal
   end
 
-  defp add_event(%{events: events} = state, ts, event) do
+  def send_event(event) do
+    event_msg = "event:" <> Asciinema.File.build_event(event)
+    HiddenNode.Client.send_message(event_msg)
+  end
+
+  def send_header(state) do
+    header_msg = "header:" <> Asciinema.File.build_header(state)
+    HiddenNode.Client.send_message(header_msg)
+  end
+
+  defp event_item(%{events: events} = _state, ts, event) do
     event_data = String.replace(IO.chardata_to_string(event), "\n", "\r\n")
 
     start_ts =
@@ -217,33 +187,6 @@ defmodule Cased.CLI.Recorder do
         _ -> ts
       end
 
-    events = [{start_ts, :timer.now_diff(ts, start_ts) / 1_000_000, event_data} | events]
-
-    %{state | events: events}
+    {start_ts, :timer.now_diff(ts, start_ts) / 1_000_000, event_data}
   end
-
-  defp do_upload(record \\ nil) do
-    record = record || __MODULE__.get()
-
-    case record do
-      %{events: [_ | _]} ->
-        record
-        |> Cased.CLI.Asciinema.File.build()
-        |> Cased.CLI.Session.upload_record()
-
-      _ ->
-        :ok
-    end
-  end
-
-  defp upload do
-    do_upload()
-    send(Process.whereis(__MODULE__), :uploaded)
-  end
-
-  defp do_autoupload(pid, %{autoupload: true, autoupload_timer: timer}) do
-    Process.send_after(pid, :upload, timer)
-  end
-
-  defp do_autoupload(_pid, _config), do: :ok
 end

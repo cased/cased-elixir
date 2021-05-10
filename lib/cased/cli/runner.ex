@@ -66,7 +66,7 @@ defmodule Cased.CLI.Runner do
     if Cased.CLI.Config.autorun() do
       Map.merge(state, %{autorun: true})
     else
-      state
+      Map.merge(state, %{autorun: false})
     end
   end
 

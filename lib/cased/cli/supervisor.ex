@@ -9,13 +9,19 @@ defmodule Cased.CLI.Supervisor do
 
   @spec init(keyword()) :: no_return
   def init(args) do
-    children = [
+    cased_children = [
       {Cased.CLI.Runner, args},
       {Cased.CLI.Config, args},
       Cased.CLI.Identity,
       Cased.CLI.Session,
       Cased.CLI.Recorder
     ]
+
+    children =
+      case :init.get_argument(:hidden) do
+        {:ok, _} -> []
+        _ -> cased_children
+      end
 
     opts = [strategy: :one_for_one, name: __MODULE__]
     Supervisor.init(children, opts)

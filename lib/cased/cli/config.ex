@@ -10,15 +10,10 @@ defmodule Cased.CLI.Config do
   @api_endpoint "https://api.cased.com"
   @credentials_keys [:token, :app_key]
 
-  @autoupload true
-  @autoupload_timer 5_000
-
   @config_keys [
     :clear_screen,
     :api_endpoint,
-    :autorun,
-    :autoupload,
-    :autoupload_timer
+    :autorun
   ]
 
   @type t :: %{
@@ -27,8 +22,7 @@ defmodule Cased.CLI.Config do
           optional(:token) => String.t(),
           :clear_screen => boolean(),
           :autorun => boolean(),
-          :autoupload => boolean(),
-          :autoupload_timer => pos_integer()
+          :hidden_node => boolean()
         }
 
   @doc """
@@ -69,13 +63,15 @@ defmodule Cased.CLI.Config do
   * Application config: `config :cased, autorun: true`
   """
   @spec autorun() :: boolean()
-  def autorun, do: get(:autorun, false)
+  def autorun do
+    case {get(:autorun, false), hidden_node()} do
+      {true, false} -> true
+      _ -> false
+    end
+  end
 
-  @spec autoupload() :: boolean()
-  def autoupload, do: get(:autoupload)
-
-  @spec autoupload_timer() :: integer()
-  def autoupload_timer, do: get(:autoupload_timer)
+  @spec hidden_node() :: boolean()
+  def hidden_node, do: get(:hidden_node, false)
 
   @doc "Returns all configurations"
   @spec configuration() :: map()
@@ -121,6 +117,7 @@ defmodule Cased.CLI.Config do
   def handle_init(opts) do
     config =
       opts
+      |> detect_hidden_node()
       |> load_user_token(:env)
       |> load_user_token(:credentails)
       |> load_app_key(:env)
@@ -133,6 +130,16 @@ defmodule Cased.CLI.Config do
 
   def handle_configure(config, opts) do
     Map.merge(config, opts)
+  end
+
+  defp detect_hidden_node(opts) do
+    hidden_node =
+      case :init.get_argument(:hidden) do
+        {:ok, _} -> true
+        _ -> false
+      end
+
+    Map.put_new(opts, :hidden_node, hidden_node)
   end
 
   defp load_env(opts) do
@@ -151,8 +158,6 @@ defmodule Cased.CLI.Config do
   defp load_default(opts) do
     opts
     |> Map.put_new(:api_endpoint, @api_endpoint)
-    |> Map.put_new(:autoupload, @autoupload)
-    |> Map.put_new(:autoupload_timer, @autoupload_timer)
     |> Map.put_new(:clear_screen, false)
   end
 

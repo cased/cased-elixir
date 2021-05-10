@@ -202,7 +202,7 @@ opts = [strategy: :one_for_one, name: Example.Supervisor]
 Supervisor.start_link(children, opts)
 ```
 
-In order for the session to automatically run at the start the  console, add `Cased.CLI.Runner.run()` after starting your application.
+In order for the session to automatically run at the start the console, add `Cased.CLI.Runner.run()` after starting your application.
 
 ``` elixir
   use Application
@@ -226,14 +226,11 @@ Available options of `Cased.CLI`:
 - `api_endpoint` - api url. default is "https://api.cased.com"
 - `clear_screen` - clear screen before start. default is false
 - `autorun` - boolean, start CLI session on start application. (if IEx loaded). default is false
-- `autoupload` - boolean, turn on\off autoupload record to server. default is true
-- `autoupload_timer` - timer autoupload. default is 5 s.
-
 
 All options can be configured in two ways:
 
-- Environment variables: `autoupload=true autoupload_timer=1000`
-- Application config: `config :cased, autoupload: true, autoupload_timer: 1000`
+- Environment variables: `autorun=true clear_screen=true`
+- Application config: `config :cased, autorun: true, clear_screen: true`
 
 ## Usage
 

@@ -21,7 +21,11 @@ defmodule Cased.Headers do
   @doc false
   @spec user_agent_header() :: Mojito.header()
   def user_agent_header do
-    {:ok, vsn} = :application.get_key(:cased, :vsn)
+    vsn =
+      case :application.get_key(:cased, :vsn) do
+        {:ok, version} -> version
+        _ -> '0.1.0'
+      end
 
     {"user-agent", "cased-elixir/v" <> List.to_string(vsn)}
   end

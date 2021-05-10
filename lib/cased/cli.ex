@@ -8,10 +8,10 @@ defmodule Cased.CLI do
   * identify user if need
   * run record
   """
+  require Logger
 
   alias Cased.CLI.Config
   alias Cased.CLI.Identity
-  alias Cased.CLI.Recorder
   alias Cased.CLI.Session
   alias Cased.CLI.Shell
 
@@ -20,6 +20,7 @@ defmodule Cased.CLI do
   """
   @spec start(pid | nil) :: no_return
   def start(leader \\ nil) do
+    Logger.configure(level: :info)
     if leader, do: Process.group_leader(self(), leader)
     Config.configure(%{iex_prompt: IEx.configuration()[:default_prompt]})
 
@@ -79,7 +80,7 @@ defmodule Cased.CLI do
         loop()
 
       :start_record ->
-        Recorder.start_record(Config.configuration())
+        Cased.CLI.Starter.run()
 
       :stopped_record ->
         Shell.info("record stoped")

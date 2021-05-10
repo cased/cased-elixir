@@ -66,12 +66,7 @@ defmodule Cased.CLI.Api.Session do
     end
   end
 
-  def put_record(
-        config,
-        %{api_record_url: url} = _session,
-        %{user: %{"id" => user_token}} = _identify,
-        asciicast_data
-      ) do
+  def put_record(config, url, user_token, asciicast_data) do
     Mojito.put(
       url <> "?user_token=#{user_token}",
       build_headers(config),

@@ -18,11 +18,11 @@ defmodule Cased.CLI.Asciinema.File do
     IO.iodata_to_binary([build_header(record) <> "\n" | json_events])
   end
 
-  defp build_event({_event_at, ts, event_data} = _event) do
+  def build_event({_event_at, ts, event_data} = _event) do
     Jason.encode!([ts, "o", event_data])
   end
 
-  defp build_header(%{meta: meta, started_at: started_at} = record) do
+  def build_header(%{meta: meta, started_at: started_at} = record) do
     %{
       version: @version,
       env: %{
