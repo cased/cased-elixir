@@ -36,7 +36,7 @@ Add a worker specification for `Cased.Publisher.Datadog` to your application's s
 
 The publisher accepts the following options:
 
-- `:key` — Your [Cased publish key](https://docs.cased.com/apis#authentication-and-api-keys) (**required**).
+- `:key` — Your [Datadog API key](https://docs.datadoghq.com/account_management/api-app-keys/#api-keys) (**required**).
 - `:silence` — Whether audit trail events will be discarded, rather than sent; useful for
   non-production usage (**optional**; defaults to `false`).
 - `:timeout` — The request timeout, in milliseconds (**optional**; defaults to `15_000`)
