@@ -53,7 +53,7 @@ defmodule Cased do
   end
 
   @default_publish_opts [
-    publishers: [Cased.Publisher.HTTP],
+    publishers: [Cased.Publisher.Datadog],
     handlers: []
   ]
 
