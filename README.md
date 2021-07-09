@@ -25,7 +25,7 @@ The package can be installed by adding `cased` to your list of dependencies in `
 ```elixir
 def deps do
   [
-    {:cased, "~> 0.1.0"}
+    {:cased, "~> 1.0.0"}
   ]
 end
 ```
